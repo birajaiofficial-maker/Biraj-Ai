@@ -11,14 +11,16 @@ BIRAJ AI is an API-first, multi-tenant AI customer support and business automati
 - Tenant API-key listing, additive key creation, and revocation
 - Tenant-scoped request usage summaries
 - Middleware that records requests authenticated with an active tenant API key
+- Optional Redis-backed, shared per-tenant fixed-window rate limiting
 
-AI model integration, knowledge retrieval, booking/order workflows, Redis rate limiting, and production deployment are not implemented yet.
+AI model integration, knowledge retrieval, booking/order workflows, and production deployment are not implemented yet.
 
 ## Technology
 
 - Python 3.11+
 - FastAPI and Uvicorn
 - SQLAlchemy 2
+- Redis 5/6 for distributed rate limiting (optional in development)
 - SQLite for local development; PostgreSQL can be configured with a suitable driver
 
 ## Run locally
@@ -59,9 +61,13 @@ Tenant creation and API-key creation return a raw API key only once. Store it se
 
 Usage middleware records requests only when the supplied `X-API-Key` resolves to an active key belonging to an active tenant. It is not a complete audit log.
 
+### Tenant rate limiting
+
+Set `REDIS_URL` to enable a Redis-backed fixed-window limit. Defaults are 60 requests per tenant per 60 seconds; override them with `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`. Limits are shared across application instances because counters live in Redis. Successful responses include `X-RateLimit-Limit` and `X-RateLimit-Remaining`; exceeded requests return HTTP 429 with `Retry-After`. Admin and requests without a valid active tenant key are not counted by this limiter. If Redis is configured but unavailable, authenticated tenant requests fail closed with HTTP 503. If `REDIS_URL` is unset, rate limiting is disabled.
+
 ## Important security and development status
 
-This is an early development foundation, not production-ready. Automated tests and live runtime verification have not yet been completed. Redis rate limiting, database migrations, full audit logging, HTTPS, secure production secret management, tenant-isolation tests, and operational monitoring are still required.
+This is an early development foundation, not production-ready. Automated tests and live runtime verification have not yet been completed. Database migrations, full audit logging, HTTPS, secure production secret management, and operational monitoring are still required. Redis rate limiting is implemented but requires a managed Redis service and production configuration.
 
 The built-in `create_all` database initialization is for development; it does not modify existing tables when model columns change. Use Alembic migrations before evolving a persistent production database.
 
