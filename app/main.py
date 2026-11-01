@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.database import init_db
+from app.tenants import router as tenant_router
+
 app = FastAPI(
     title="BIRAJ AI",
     description="API-first AI Customer Support & Business Automation platform",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 # Local-development origins only. Configure production origins before deployment.
@@ -13,8 +16,15 @@ app.add_middleware(
     allow_origins=["http://localhost", "http://127.0.0.1"],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key", "X-Admin-Key"],
 )
+
+app.include_router(tenant_router)
+
+
+@app.on_event("startup")
+def startup():
+    init_db()
 
 
 @app.get("/", tags=["System"])
