@@ -10,7 +10,13 @@ from app.security import get_current_tenant
 router = APIRouter(prefix="/api/v1/ai", tags=["AI"])
 
 DEFAULT_OLLAMA_URL = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen2.5:0.5b"
+DEFAULT_MODEL = "qwen2.5:0.5b-instruct"
+DEFAULT_SYSTEM_PROMPT = (
+    "You are BIRAJ AI, a helpful and honest AI assistant. "
+    "Give clear, practical answers. Match the user's language when possible. "
+    "If you are unsure, say so rather than inventing facts. "
+    "Do not claim that the model was trained from scratch by BIRAJ AI."
+)
 
 
 class ChatRequest(BaseModel):
@@ -37,6 +43,7 @@ async def chat(
     """Send one message to the self-hosted Ollama runtime; no external AI API."""
     base_url = os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_URL).rstrip("/")
     model = os.getenv("BIRAJ_AI_MODEL", DEFAULT_MODEL)
+    system_prompt = os.getenv("BIRAJ_AI_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
 
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(90.0, connect=5.0)) as client:
@@ -44,7 +51,10 @@ async def chat(
                 f"{base_url}/api/chat",
                 json={
                     "model": model,
-                    "messages": [{"role": "user", "content": payload.message}],
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": payload.message},
+                    ],
                     "stream": False,
                 },
             )
