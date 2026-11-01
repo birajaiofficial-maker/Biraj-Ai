@@ -182,3 +182,48 @@ def test_ai_routes_require_tenant_and_report_local_runtime(client):
     assert status.json()["provider"] == "ollama"
     assert status.json()["connection"] == "not_checked"
     assert status.json()["model"]
+
+
+def test_ai_chat_uses_local_qwen_and_biraj_system_prompt(client, monkeypatch):
+    from app import ai
+
+    tenant = create_tenant(client, "Local AI Tenant")
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"message": {"content": "Namaste! Main BIRAJ AI hoon."}}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, traceback):
+            return False
+
+        async def post(self, url, json):
+            captured["url"] = url
+            captured["payload"] = json
+            return FakeResponse()
+
+    monkeypatch.setattr(ai.httpx, "AsyncClient", FakeAsyncClient)
+    response = client.post(
+        "/api/v1/ai/chat",
+        headers={"X-API-Key": tenant["api_key"]},
+        json={"message": "Namaste"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["answer"] == "Namaste! Main BIRAJ AI hoon."
+    assert response.json()["provider"] == "ollama"
+    assert captured["url"] == "http://127.0.0.1:11434/api/chat"
+    assert captured["payload"]["model"] == "qwen2.5:0.5b-instruct"
+    assert captured["payload"]["messages"][0]["role"] == "system"
+    assert "BIRAJ AI" in captured["payload"]["messages"][0]["content"]
+    assert captured["payload"]["messages"][1] == {"role": "user", "content": "Namaste"}
