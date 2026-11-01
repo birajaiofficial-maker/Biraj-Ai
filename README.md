@@ -2,21 +2,23 @@
 
 BIRAJ AI is an API-first, multi-tenant AI customer support and business automation platform.
 
-## MVP scope
+## Current foundation
 
-- Customer Support API foundation
-- Knowledge Base integration foundation
-- Multilingual support foundation
-- Health and service-discovery endpoints
+- FastAPI application and interactive API docs
+- Health and service catalogue endpoints
+- Tenant and tenant API-key database models
+- Hashed tenant API-key storage
+- Admin-protected tenant provisioning
+- Tenant-authenticated profile endpoint
 
-The repository currently contains the initial backend scaffold. AI provider integration, tenant authentication, persistent storage, retrieval, and business integrations are not yet implemented.
+AI model integration, knowledge retrieval, business workflows, rate limiting, audit logging, and production deployment are not implemented yet.
 
 ## Technology
 
 - Python 3.11+
-- FastAPI
-- Uvicorn
-- Pydantic
+- FastAPI and Uvicorn
+- SQLAlchemy 2
+- SQLite for local development; PostgreSQL can be configured with a suitable driver
 
 ## Run locally
 
@@ -24,21 +26,29 @@ The repository currently contains the initial backend scaffold. AI provider inte
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
+```
+
+Set a long, random `BIRAJ_ADMIN_KEY` in `.env`, then start:
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-On Android/Termux, open `http://127.0.0.1:8000/docs` in your browser after starting the server.
+Open `http://127.0.0.1:8000/docs`.
 
-## Endpoints
+## Main endpoints
 
 - `GET /` — API information
 - `GET /health` — health check
-- `GET /api/v1/services` — MVP service catalogue
+- `GET /api/v1/services` — service catalogue
+- `POST /api/v1/admin/tenants` — create a tenant (requires `X-Admin-Key`)
+- `GET /api/v1/tenant/me` — current tenant profile (requires `X-API-Key`)
 
-## Configuration
+Tenant creation returns the tenant API key once. Store it securely; only its SHA-256 hash is saved in the database.
 
-Copy `.env.example` to `.env` before adding local configuration. Never commit API keys, passwords, or production secrets.
+## Important security status
 
-## Project status
+This is an early development foundation, not production-ready. Before production, add database migrations, key rotation/revocation workflows, rate limiting, audit logs, HTTPS, secure secret management, tenant-scoped data access tests, and operational monitoring. The built-in `create_all` database initialization is for development; use Alembic migrations in production.
 
-Early development. Do not use in production until authentication, tenant isolation, rate limiting, audit logging, and data protection are implemented and tested.
+Never commit real API keys, passwords, or production secrets.
