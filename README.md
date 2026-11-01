@@ -20,7 +20,8 @@ The AI adapter talks only to a self-hosted Ollama server; it does not call OpenA
 
 Configuration:
 - `OLLAMA_BASE_URL`: Ollama server URL (default `http://127.0.0.1:11434`)
-- `BIRAJ_AI_MODEL`: model tag already installed in Ollama (default `qwen2.5:0.5b`)
+- `BIRAJ_AI_MODEL`: model tag already installed in Ollama (default `qwen2.5:0.5b-instruct`)
+- `BIRAJ_AI_SYSTEM_PROMPT`: optional assistant instruction override; defaults to the BIRAJ AI identity and honesty instructions
 
 Endpoints (both require a valid tenant `X-API-Key`):
 - `GET /api/v1/ai/status`: reports the configured local provider and model; it does not test connectivity
