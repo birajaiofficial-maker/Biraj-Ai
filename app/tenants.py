@@ -84,7 +84,7 @@ def list_api_keys(tenant: Tenant = Depends(get_current_tenant), db: Session = De
     ).order_by(TenantAPIKey.created_at.desc()).all()
     return {"api_keys": [
         {"id": key.id, "prefix": key.key_prefix, "is_active": key.is_active,
-         "created_at": key.created_at, "revoked_at": getattr(key, "revoked_at", None)}
+         "created_at": key.created_at}
         for key in keys
     ]}
 
@@ -113,8 +113,6 @@ def revoke_api_key(key_id: str, tenant: Tenant = Depends(get_current_tenant),
     if record is None:
         raise HTTPException(status_code=404, detail="API key not found")
     record.is_active = False
-    if hasattr(record, "revoked_at"):
-        record.revoked_at = datetime.now(timezone.utc)
     db.commit()
     return {"status": "revoked", "key_id": record.id}
 
