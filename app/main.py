@@ -53,6 +53,8 @@ async def record_tenant_usage(request: Request, call_next):
         finally:
             db.close()
 
+    return response
+
 
 @app.on_event("startup")
 def startup():
