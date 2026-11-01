@@ -163,3 +163,22 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
     )
     assert first_b.status_code == 200
 
+
+
+def test_ai_routes_require_tenant_and_report_local_runtime(client):
+    unauthorized_status = client.get("/api/v1/ai/status")
+    assert unauthorized_status.status_code == 401
+
+    unauthorized_chat = client.post(
+        "/api/v1/ai/chat",
+        json={"message": "Namaste"},
+    )
+    assert unauthorized_chat.status_code == 401
+
+    tenant = create_tenant(client, "AI Test Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+    status = client.get("/api/v1/ai/status", headers=headers)
+    assert status.status_code == 200
+    assert status.json()["provider"] == "ollama"
+    assert status.json()["connection"] == "not_checked"
+    assert status.json()["model"]
