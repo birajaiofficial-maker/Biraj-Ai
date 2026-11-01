@@ -7,8 +7,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Restrict allowed origins before production deployment.
-# This permissive setting is suitable only for local development.
+# Local-development origins only. Configure production origins before deployment.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost", "http://127.0.0.1"],
@@ -40,20 +39,8 @@ def list_services():
         "version": "v1",
         "status": "foundation",
         "services": [
-            {
-                "id": "customer-support",
-                "name": "AI Customer Support",
-                "status": "planned",
-            },
-            {
-                "id": "knowledge-base",
-                "name": "AI Knowledge Base",
-                "status": "planned",
-            },
-            {
-                "id": "multilingual",
-                "name": "AI Language Assistant",
-                "status": "planned",
-            },
+            {"id": "customer-support", "name": "AI Customer Support", "status": "planned"},
+            {"id": "knowledge-base", "name": "AI Knowledge Base", "status": "planned"},
+            {"id": "multilingual", "name": "AI Language Assistant", "status": "planned"},
         ],
     }
