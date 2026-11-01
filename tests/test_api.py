@@ -122,3 +122,44 @@ def test_admin_authentication_and_usage_validation(client):
         headers={"X-API-Key": tenant["api_key"]},
     )
     assert invalid_days.status_code == 422
+
+class FakeRedis:
+    def __init__(self):
+        self.counts = {}
+
+    async def eval(self, script, number_of_keys, key, window):
+        self.counts[key] = self.counts.get(key, 0) + 1
+        return [self.counts[key], int(window)]
+
+
+def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypatch):
+    fake_redis = FakeRedis()
+    monkeypatch.setattr(main, "redis_client", fake_redis)
+    monkeypatch.setenv("REDIS_URL", "redis://fake/0")
+    monkeypatch.setenv("RATE_LIMIT_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+
+    tenant_a = create_tenant(client, "Rate Limited A")
+    tenant_b = create_tenant(client, "Rate Limited B")
+
+    first_a = client.get(
+        "/api/v1/tenant/me",
+        headers={"X-API-Key": tenant_a["api_key"]},
+    )
+    assert first_a.status_code == 200
+    assert first_a.headers["x-ratelimit-limit"] == "1"
+    assert first_a.headers["x-ratelimit-remaining"] == "0"
+
+    blocked_a = client.get(
+        "/api/v1/tenant/me",
+        headers={"X-API-Key": tenant_a["api_key"]},
+    )
+    assert blocked_a.status_code == 429
+    assert blocked_a.headers["retry-after"] == "60"
+
+    first_b = client.get(
+        "/api/v1/tenant/me",
+        headers={"X-API-Key": tenant_b["api_key"]},
+    )
+    assert first_b.status_code == 200
+
