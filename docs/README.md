@@ -9,6 +9,7 @@ This directory is the single source of truth for BIRAJ AI's technical plans and 
 - [Decision Log](DECISIONS.md) — confirmed decisions and unresolved choices.
 - [Testing Strategy](TESTING.md) — test levels, quality gates, and verification status.
 - [Module Register](modules/README.md) — module ownership, status, and documentation rules.
+- [Branch Register](BRANCHES.md) — branch names, purposes, pull requests, and branch lifecycle rules.
 
 ## Documentation rules
 
