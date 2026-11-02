@@ -6,6 +6,7 @@ This directory is the single source of truth for BIRAJ AI's technical plans and 
 
 - [Architecture](ARCHITECTURE.md) — system boundaries, layers, and current/target design.
 - [External API Contract](API-CONTRACT.md) — implemented endpoints, authentication, request/response examples, current errors, and pending contract gaps.
+- [API Policy Proposal](API-POLICY-PROPOSAL.md) — draft versioning, error envelope, request IDs, streaming, and quota rules; not approved for runtime implementation.
 - [Development Plan](DEVELOPMENT-PLAN.md) — ordered build phases and completion gates.
 - [Decision Log](DECISIONS.md) — confirmed decisions and unresolved choices.
 - [Testing Strategy](TESTING.md) — test levels, quality gates, and verification status.
