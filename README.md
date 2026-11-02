@@ -1,29 +1,50 @@
 # BIRAJ AI
 
-BIRAJ AI is an API-first, multi-tenant AI customer support and business automation platform.
+BIRAJ AI is being developed as a modular AI platform. The current engineering objective is to complete and verify the reusable core platform before expanding end-user services.
 
-## Current foundation
+## Project status
 
-- FastAPI application, health endpoint, and interactive API docs
-- Tenant and tenant API-key database models
-- Admin-protected tenant provisioning and tenant activation/deactivation
-- Hashed tenant API-key storage
-- Tenant API-key listing, additive key creation, and revocation
-- Tenant-scoped request usage summaries
-- Middleware that records requests authenticated with an active tenant API key
-- Optional Redis-backed, shared per-tenant fixed-window rate limiting
+**Current phase:** Phase 0 — repository audit and project baseline.  
+**Core platform:** Not complete.  
+**Runtime AI model and inference engine:** Not selected or integrated.
 
-AI model integration, knowledge retrieval, booking/order workflows, and production deployment are not implemented yet.
+This repository already contains an early Python/FastAPI foundation for API access, tenant management, API-key handling, usage recording and optional Redis-backed rate limiting. Existing code is a starting point and must be audited and tested; its presence does not mean it is production-ready.
 
-## Technology
+## Development principles
 
-- Python 3.11+
-- FastAPI and Uvicorn
-- SQLAlchemy 2
-- Redis 5/6 for distributed rate limiting (optional in development)
-- SQLite for local development; PostgreSQL can be configured with a suitable driver
+- Build and test the core platform one module at a time.
+- Keep modules replaceable and interfaces documented.
+- Do not use OpenAI or Google Gemini as BIRAJ AI runtime model providers.
+- ChatGPT is used as an external development assistant; it is not a BIRAJ AI runtime dependency.
+- Do not add end-user service expansion, pricing, subscriptions or promotion planning before core completion.
+- Record confirmed decisions and mark unresolved choices as pending.
 
-## Run locally
+## Documentation
+
+The authoritative technical documentation lives in [`docs/`](docs/README.md):
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Development plan](docs/DEVELOPMENT-PLAN.md)
+- [Decision log](docs/DECISIONS.md)
+- [Testing strategy](docs/TESTING.md)
+- [Module register](docs/modules/README.md)
+
+GitHub Issues track individual tasks and bugs. The documentation is the source of truth for architecture, decisions and project status.
+
+## Existing foundation (to be audited)
+
+- FastAPI application and API routes
+- SQLAlchemy data models
+- Tenant provisioning and tenant API-key lifecycle
+- Tenant-scoped usage recording
+- Optional Redis-backed rate limiting
+- Automated test files and GitHub Actions workflow
+
+See the documentation before making architectural changes. Do not assume an existing component is production-ready until its tests and security review pass.
+
+## Local development
+
+The existing application uses Python 3.11+.
 
 ```bash
 python -m venv .venv
@@ -32,7 +53,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set a long, random `BIRAJ_ADMIN_KEY` in `.env`, then start:
+Set a long, random `BIRAJ_ADMIN_KEY` in `.env`, then run:
 
 ```bash
 uvicorn app.main:app --reload
@@ -40,35 +61,8 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000/docs`.
 
-## Main endpoints
+Never commit real API keys, passwords or production secrets.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/` | API information |
-| GET | `/health` | Health check |
-| GET | `/api/v1/services` | Service catalogue |
-| POST | `/api/v1/admin/tenants` | Create tenant; requires `X-Admin-Key` |
-| PATCH | `/api/v1/admin/tenants/{tenant_id}/status` | Activate/deactivate tenant; requires `X-Admin-Key` |
-| GET | `/api/v1/tenant/me` | Current tenant profile; requires `X-API-Key` |
-| GET | `/api/v1/tenant/api-keys` | List current tenant's keys |
-| POST | `/api/v1/tenant/api-keys` | Create an additional API key |
-| DELETE | `/api/v1/tenant/api-keys/{key_id}` | Revoke one of the current tenant's keys |
-| GET | `/api/v1/tenant/usage?days=30` | Usage summary for the last 1–90 days |
+## Important
 
-Tenant creation and API-key creation return a raw API key only once. Store it securely; only its SHA-256 hash is saved in the database.
-
-**Key rotation behavior:** creating a new key does not automatically disable old keys. Create the replacement key, update the integrating application, verify it works, and then revoke the old key.
-
-Usage middleware records requests only when the supplied `X-API-Key` resolves to an active key belonging to an active tenant. It is not a complete audit log.
-
-### Tenant rate limiting
-
-Set `REDIS_URL` to enable a Redis-backed fixed-window limit. Defaults are 60 requests per tenant per 60 seconds; override them with `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_SECONDS`. Limits are shared across application instances because counters live in Redis. Successful responses include `X-RateLimit-Limit` and `X-RateLimit-Remaining`; exceeded requests return HTTP 429 with `Retry-After`. Admin and requests without a valid active tenant key are not counted by this limiter. If Redis is configured but unavailable, authenticated tenant requests fail closed with HTTP 503. If `REDIS_URL` is unset, rate limiting is disabled.
-
-## Important security and development status
-
-This is an early development foundation, not production-ready. Automated tests and live runtime verification have not yet been completed. Database migrations, full audit logging, HTTPS, secure production secret management, and operational monitoring are still required. Redis rate limiting is implemented but requires a managed Redis service and production configuration.
-
-The built-in `create_all` database initialization is for development; it does not modify existing tables when model columns change. Use Alembic migrations before evolving a persistent production database.
-
-Never commit real API keys, passwords, or production secrets.
+This repository is an early development foundation, not a production-ready platform. Follow [the development plan](docs/DEVELOPMENT-PLAN.md) and [testing strategy](docs/TESTING.md) before claiming completion or deploying for real users.
