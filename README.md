@@ -42,7 +42,7 @@ GitHub is the source of truth for code, branches, commits and CI. Notion tracks 
 - SQLAlchemy data models
 - Tenant provisioning and tenant API-key lifecycle
 - Tenant-scoped usage recording
-- Optional Redis-backed rate limiting
+- Shared Redis-backed rate limiting with a bounded per-process emergency fallback when Redis is unavailable
 - Cloudflare Workers AI REST adapter (app/providers/cloudflare_workers_ai.py)
 - Authenticated AI status and chat routes (app/ai.py)
 - Adapter and API tests
