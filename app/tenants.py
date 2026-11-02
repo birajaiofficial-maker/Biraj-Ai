@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -16,6 +16,13 @@ router = APIRouter(prefix="/api/v1", tags=["Tenants"])
 
 class TenantCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 @router.post("/admin/tenants", status_code=status.HTTP_201_CREATED)
@@ -37,7 +44,7 @@ def create_tenant(
             detail="Invalid admin key",
         )
 
-    tenant = Tenant(name=payload.name.strip())
+    tenant = Tenant(name=payload.name)
     raw_api_key = generate_tenant_api_key()
     key_record = TenantAPIKey(
         tenant=tenant,
