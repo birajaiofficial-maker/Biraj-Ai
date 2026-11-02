@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.ai import router as ai_router
 from app.database import SessionLocal, init_db
 from app.models import TenantAPIKey, TenantUsageLog
 from app.security import hash_api_key
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="BIRAJ AI",
     description="API-first AI Customer Support & Business Automation platform",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 # Redis is optional in development. When configured, Redis failures fail closed
@@ -55,6 +56,7 @@ app.add_middleware(
 )
 
 app.include_router(tenant_router)
+app.include_router(ai_router)
 
 
 @app.middleware("http")
