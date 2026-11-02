@@ -24,13 +24,12 @@
 
 The repository contains `tests/test_api.py`, `tests/test_tenant_isolation.py` and `.github/workflows/tests.yml`.
 
-### Verified CI run
+### Verified CI runs
 
-- Commit: `431059bc3e2ba4db1828760cf7206ebff48f2f43` (current documentation PR head)
-- Workflow: **BIRAJ AI tests**, GitHub Actions run [#12](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41400445103)
-- Environment: GitHub-hosted Ubuntu runner, Python 3.11
-- Command: `pytest -q`
-- Result: **5 passed**, 3 warnings; job completed successfully.
-- Warnings observed: Starlette's `httpx` TestClient deprecation, FastAPI `on_event` deprecation, and runner/action Node.js 20 deprecation notice.
+- **Latest documentation PR head:** commit `d9f69af98e428a552483a13fd7f74c3afafca358`; GitHub Actions workflow **BIRAJ AI tests**, [run #13](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41400539969); GitHub-hosted Ubuntu runner, Python 3.11; command `pytest -q`; result **5 passed, 3 warnings**; job completed successfully on 2026-11-02.
+- **Earlier documentation PR run:** commit `431059bc3e2ba4db1828760cf7206ebff48f2f43`; [run #12](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41400445103); **5 passed, 3 warnings**.
+- **Experimental local-runtime PR:** commit `99ac4a58c048e2f52bd8a1dbafdfe38764bd8df6`; [run #9](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41274195738); workflow completed successfully. Passing CI verifies the automated test suite only; it does not approve the model/runtime choice or prove live Ollama connectivity.
 
-The latest documentation PR head also passed the same five-test baseline in run #12. It is not a production-readiness or comprehensive security assessment. Re-run CI after subsequent code changes.
+Warnings observed on the latest documentation run: Starlette's `httpx` TestClient deprecation, FastAPI `on_event` deprecation, and GitHub runner/action Node.js 20 deprecation notice.
+
+These are narrow baseline tests, not a production-readiness or comprehensive security assessment. Re-run CI after subsequent code changes.
