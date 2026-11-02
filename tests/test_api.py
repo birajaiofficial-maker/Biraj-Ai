@@ -30,9 +30,11 @@ def client(monkeypatch):
             db.close()
 
     monkeypatch.setenv("BIRAJ_ADMIN_KEY", "test-admin-secret")
+    monkeypatch.setenv("BIRAJ_AI_ENABLED", "false")
     monkeypatch.setattr(main, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(main, "init_db", lambda: None)
     main.app.dependency_overrides[get_db] = override_get_db
+    main._local_rate_limits.clear()
 
     with TestClient(main.app) as test_client:
         yield test_client
@@ -123,6 +125,26 @@ def test_admin_authentication_and_usage_validation(client):
     )
     assert invalid_days.status_code == 422
 
+
+def test_tenant_name_is_trimmed_before_length_validation(client):
+    tenant = create_tenant(client, "  Example Tenant  ")
+    assert tenant["tenant_name"] == "Example Tenant"
+
+    whitespace_only = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": "   "},
+    )
+    assert whitespace_only.status_code == 422
+
+    too_short_after_trimming = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": " A "},
+    )
+    assert too_short_after_trimming.status_code == 422
+
+
 class FakeRedis:
     def __init__(self):
         self.counts = {}
@@ -130,6 +152,11 @@ class FakeRedis:
     async def eval(self, script, number_of_keys, key, window):
         self.counts[key] = self.counts.get(key, 0) + 1
         return [self.counts[key], int(window)]
+
+
+class UnavailableRedis:
+    async def eval(self, *args, **kwargs):
+        raise ConnectionError("Redis is offline")
 
 
 def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypatch):
@@ -163,3 +190,73 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
     )
     assert first_b.status_code == 200
 
+
+def test_redis_outage_uses_bounded_local_fallback_instead_of_blanket_503(client, monkeypatch):
+    monkeypatch.setattr(main, "redis_client", UnavailableRedis())
+    monkeypatch.setenv("REDIS_URL", "redis://unavailable/0")
+    monkeypatch.setenv("RATE_LIMIT_REQUESTS", "60")
+    monkeypatch.setenv("RATE_LIMIT_FALLBACK_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+
+    tenant = create_tenant(client, "Redis Outage Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+
+    first = client.get("/api/v1/tenant/me", headers=headers)
+    assert first.status_code == 200
+    assert first.headers["x-ratelimit-mode"] == "local-fallback"
+    assert first.headers["x-ratelimit-remaining"] == "0"
+
+    second = client.get("/api/v1/tenant/me", headers=headers)
+    assert second.status_code == 429
+    assert second.headers["x-ratelimit-mode"] == "local-fallback"
+    assert int(second.headers["retry-after"]) >= 1
+
+
+def test_ai_routes_require_tenant_and_inference_is_disabled_by_default(client):
+    assert client.get("/api/v1/ai/status").status_code == 401
+    assert client.post("/api/v1/ai/chat", json={"message": "Hello"}).status_code == 401
+
+    tenant = create_tenant(client, "AI Disabled Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+
+    status = client.get("/api/v1/ai/status", headers=headers)
+    assert status.status_code == 200
+    assert status.json()["provider"] == "cloudflare_workers_ai"
+    assert status.json()["enabled"] is False
+
+    disabled_chat = client.post(
+        "/api/v1/ai/chat",
+        headers=headers,
+        json={"message": "Namaste"},
+    )
+    assert disabled_chat.status_code == 503
+
+
+def test_ai_chat_uses_only_cloudflare_adapter_when_enabled(client, monkeypatch):
+    from app import ai
+
+    tenant = create_tenant(client, "AI Enabled Tenant")
+    monkeypatch.setenv("BIRAJ_AI_ENABLED", "true")
+    captured = {}
+
+    class FakeCloudflareClient:
+        model = "@cf/zai-org/glm-4.7-flash"
+
+        async def generate(self, messages, max_tokens):
+            captured["messages"] = messages
+            captured["max_tokens"] = max_tokens
+            return "Namaste! Main BIRAJ AI hoon."
+
+    monkeypatch.setattr(ai, "CloudflareWorkersAIClient", FakeCloudflareClient)
+    response = client.post(
+        "/api/v1/ai/chat",
+        headers={"X-API-Key": tenant["api_key"]},
+        json={"message": "Namaste"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["provider"] == "cloudflare_workers_ai"
+    assert response.json()["answer"] == "Namaste! Main BIRAJ AI hoon."
+    assert captured["messages"][0]["role"] == "system"
+    assert captured["messages"][1] == {"role": "user", "content": "Namaste"}
+    assert captured["max_tokens"] == 512

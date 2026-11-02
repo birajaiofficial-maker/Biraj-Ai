@@ -4,44 +4,49 @@ BIRAJ AI is being developed as a modular AI platform. The current engineering ob
 
 ## Project status
 
-**Current phase:** Phase 0 — repository audit and project baseline.  
+**Current phase:** Core platform foundation and Cloudflare Workers AI adapter integration.  
 **Core platform:** Not complete.  
-**Runtime AI model and inference engine:** Not selected or integrated.
+**Runtime provider:** Cloudflare Workers AI only (approved).  
+**Inference default:** Disabled until account credentials, model access, quota and billing safeguards are verified.
 
-This repository already contains an early Python/FastAPI foundation for API access, tenant management, API-key handling, usage recording and optional Redis-backed rate limiting. Existing code is a starting point and must be audited and tested; its presence does not mean it is production-ready.
+This repository contains an early Python/FastAPI foundation for API access, tenant management, API-key handling, usage recording and optional Redis-backed rate limiting. It also contains a Cloudflare Workers AI REST adapter and an authenticated AI chat route. These are implementation foundations, not proof of production readiness.
 
 ## Development principles
 
 - Build and test the core platform one module at a time.
 - Keep modules replaceable and interfaces documented.
-- Do not use OpenAI or Google Gemini as BIRAJ AI runtime model providers.
+- Cloudflare Workers AI is the only approved BIRAJ AI runtime provider at this stage.
+- Do not add OpenAI, Google Gemini, Groq, Ollama or another runtime provider.
 - ChatGPT is used as an external development assistant; it is not a BIRAJ AI runtime dependency.
+- Do not enable paid billing or paid usage without explicit user approval.
+- If inference is disabled, credentials are missing, or Cloudflare rejects a request because of quota, permissions or availability, stop safely. Do not silently switch providers or upgrade billing.
 - Do not add end-user service expansion, pricing, subscriptions or promotion planning before core completion.
 - Record confirmed decisions and mark unresolved choices as pending.
 
 ## Documentation
 
-The authoritative technical documentation lives in [`docs/`](docs/README.md):
+The authoritative technical documentation lives in docs/:
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development plan](docs/DEVELOPMENT-PLAN.md)
-- [Decision log](docs/DECISIONS.md)
-- [Testing strategy](docs/TESTING.md)
-- [Module register](docs/modules/README.md)
-- [Branch register](docs/BRANCHES.md)
+- Architecture
+- Development plan
+- Decision log
+- Testing strategy
+- Module register
+- Branch register
 
-GitHub Issues track individual tasks and bugs. The documentation is the source of truth for architecture, decisions and project status.
+GitHub is the source of truth for code, branches, commits and CI. Notion tracks project decisions, tasks and meaningful changes.
 
-## Existing foundation (to be audited)
+## Existing foundation (not production-ready)
 
 - FastAPI application and API routes
 - SQLAlchemy data models
 - Tenant provisioning and tenant API-key lifecycle
 - Tenant-scoped usage recording
-- Optional Redis-backed rate limiting
-- Automated test files and GitHub Actions workflow
-
-See the documentation before making architectural changes. Do not assume an existing component is production-ready until its tests and security review pass.
+- Shared Redis-backed rate limiting with a bounded per-process emergency fallback when Redis is unavailable
+- Cloudflare Workers AI REST adapter (app/providers/cloudflare_workers_ai.py)
+- Authenticated AI status and chat routes (app/ai.py)
+- Adapter and API tests
+- GitHub Actions test workflow
 
 ## Local development
 
@@ -54,16 +59,16 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Set a long, random `BIRAJ_ADMIN_KEY` in `.env`, then run:
+Set a long, random BIRAJ_ADMIN_KEY in .env, then run:
 
 ```bash
 uvicorn app.main:app --reload --env-file .env
 ```
 
-Open `http://127.0.0.1:8000/docs`.
+Open http://127.0.0.1:8000/docs.
 
-Never commit real API keys, passwords or production secrets.
+Cloudflare inference remains disabled by default. Never commit real API keys, passwords or production secrets. Do not enable inference until the account's free quota, model access and billing behavior have been checked.
 
 ## Important
 
-This repository is an early development foundation, not a production-ready platform. Follow [the development plan](docs/DEVELOPMENT-PLAN.md) and [testing strategy](docs/TESTING.md) before claiming completion or deploying for real users.
+This repository is an early development foundation, not a production-ready platform. Follow the development plan and testing strategy before claiming completion or deploying for real users.
