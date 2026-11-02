@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 import pytest
 
@@ -8,8 +10,7 @@ from app.providers.cloudflare_workers_ai import (
 )
 
 
-@pytest.mark.asyncio
-async def test_cloudflare_adapter_sends_authenticated_model_request(monkeypatch):
+def test_cloudflare_adapter_sends_authenticated_model_request(monkeypatch):
     captured = {}
 
     class FakeResponse:
@@ -40,10 +41,10 @@ async def test_cloudflare_adapter_sends_authenticated_model_request(monkeypatch)
         model="@cf/zai-org/glm-4.7-flash",
     )
 
-    answer = await client.generate(
+    answer = asyncio.run(client.generate(
         [{"role": "user", "content": "Namaste"}],
         max_tokens=123,
-    )
+    ))
 
     assert answer == "Namaste from BIRAJ AI"
     assert captured["url"].endswith(
@@ -56,29 +57,24 @@ async def test_cloudflare_adapter_sends_authenticated_model_request(monkeypatch)
     assert captured["payload"]["max_tokens"] == 123
 
 
-@pytest.mark.asyncio
-async def test_cloudflare_adapter_requires_credentials():
+def test_cloudflare_adapter_requires_credentials():
     client = CloudflareWorkersAIClient(account_id="", api_token="")
     with pytest.raises(ProviderConfigurationError):
-        await client.generate([{"role": "user", "content": "Hello"}])
+        asyncio.run(client.generate([{"role": "user", "content": "Hello"}]))
 
 
-@pytest.mark.asyncio
-async def test_cloudflare_adapter_rejects_non_cloudflare_model():
+def test_cloudflare_adapter_rejects_non_cloudflare_model():
     client = CloudflareWorkersAIClient(
         account_id="account-test",
         api_token="token-test",
         model="openai/example-model",
     )
     with pytest.raises(ProviderConfigurationError):
-        await client.generate([{"role": "user", "content": "Hello"}])
+        asyncio.run(client.generate([{"role": "user", "content": "Hello"}]))
 
 
-@pytest.mark.asyncio
-async def test_cloudflare_adapter_stops_on_http_error_without_fallback(monkeypatch):
+def test_cloudflare_adapter_stops_on_http_error_without_fallback(monkeypatch):
     class FakeResponse:
-        status_code = 403
-
         def raise_for_status(self):
             request = httpx.Request("POST", "https://api.cloudflare.com/test")
             response = httpx.Response(403, request=request)
@@ -103,4 +99,4 @@ async def test_cloudflare_adapter_stops_on_http_error_without_fallback(monkeypat
         api_token="token-test",
     )
     with pytest.raises(ProviderRequestError, match="HTTP 403"):
-        await client.generate([{"role": "user", "content": "Hello"}])
+        asyncio.run(client.generate([{"role": "user", "content": "Hello"}]))
