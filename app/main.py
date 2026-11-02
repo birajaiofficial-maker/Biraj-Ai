@@ -1,6 +1,8 @@
 import logging
 import os
+import threading
 import time
+from collections import OrderedDict
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,9 +22,14 @@ app = FastAPI(
     version="0.5.0",
 )
 
-# Redis is optional in development. When configured, Redis failures fail closed
-# for authenticated tenant requests so an outage cannot silently bypass limits.
 redis_client = None
+# Bounded process-local fallback prevents a Redis outage from denying every
+# authenticated request. It is intentionally an emergency, per-process limit;
+# Redis remains the authoritative shared limiter when healthy.
+_local_rate_limits = OrderedDict()
+_local_rate_limit_lock = threading.Lock()
+_LOCAL_RATE_LIMIT_MAX_TENANTS = 10000
+
 RATE_LIMIT_SCRIPT = """
 local count = redis.call('INCR', KEYS[1])
 if count == 1 then
@@ -45,6 +52,37 @@ def get_redis_client():
     return redis_client
 
 
+def _consume_local_rate_limit(tenant_id: str, limit: int, window: int):
+    """Return (allowed, remaining, retry_after) for emergency local throttling."""
+    now = time.monotonic()
+    with _local_rate_limit_lock:
+        # Remove expired entries first to keep the fallback store bounded.
+        expired = [
+            key for key, (_, reset_at) in _local_rate_limits.items()
+            if reset_at <= now
+        ]
+        for key in expired:
+            _local_rate_limits.pop(key, None)
+
+        entry = _local_rate_limits.get(tenant_id)
+        if entry is None or entry[1] <= now:
+            count = 1
+            reset_at = now + window
+        else:
+            count, reset_at = entry
+            count += 1
+
+        _local_rate_limits[tenant_id] = (count, reset_at)
+        _local_rate_limits.move_to_end(tenant_id)
+
+        while len(_local_rate_limits) > _LOCAL_RATE_LIMIT_MAX_TENANTS:
+            _local_rate_limits.popitem(last=False)
+
+        remaining = max(0, limit - count)
+        retry_after = max(1, int(reset_at - now))
+        return count <= limit, remaining, retry_after
+
+
 # Local-development origins only. Configure production origins before deployment.
 app.add_middleware(
     CORSMiddleware,
@@ -52,7 +90,12 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key", "X-Admin-Key"],
-    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "Retry-After"],
+    expose_headers=[
+        "X-RateLimit-Limit",
+        "X-RateLimit-Remaining",
+        "X-RateLimit-Mode",
+        "Retry-After",
+    ],
 )
 
 app.include_router(tenant_router)
@@ -65,7 +108,7 @@ async def record_tenant_usage(request: Request, call_next):
     raw_key = request.headers.get("X-API-Key")
     tenant_id = None
 
-    # Enforce a shared per-tenant fixed-window limit when Redis is configured.
+    # Resolve the tenant once, then apply shared Redis or emergency local limits.
     if raw_key and os.getenv("REDIS_URL"):
         db = SessionLocal()
         try:
@@ -98,6 +141,7 @@ async def record_tenant_usage(request: Request, call_next):
                             "Retry-After": str(max(1, int(ttl))),
                             "X-RateLimit-Limit": str(limit),
                             "X-RateLimit-Remaining": "0",
+                            "X-RateLimit-Mode": "redis",
                         },
                     )
                     elapsed_ms = (time.perf_counter() - started) * 1000
@@ -106,13 +150,35 @@ async def record_tenant_usage(request: Request, call_next):
                 request.state.rate_limit_headers = {
                     "X-RateLimit-Limit": str(limit),
                     "X-RateLimit-Remaining": str(max(0, limit - int(count))),
+                    "X-RateLimit-Mode": "redis",
                 }
             except Exception:
-                logger.exception("Redis rate limiter unavailable")
-                return JSONResponse(
-                    status_code=503,
-                    content={"detail": "Rate limiting service temporarily unavailable"},
+                logger.exception("Redis rate limiter unavailable; using local emergency limit")
+                fallback_limit = max(
+                    1, int(os.getenv("RATE_LIMIT_FALLBACK_REQUESTS", str(limit)))
                 )
+                allowed, remaining, retry_after = _consume_local_rate_limit(
+                    tenant_id, fallback_limit, window
+                )
+                request.state.rate_limit_headers = {
+                    "X-RateLimit-Limit": str(fallback_limit),
+                    "X-RateLimit-Remaining": str(remaining),
+                    "X-RateLimit-Mode": "local-fallback",
+                }
+                if not allowed:
+                    response = JSONResponse(
+                        status_code=429,
+                        content={"detail": "Tenant emergency rate limit exceeded. Retry after the current window."},
+                        headers={
+                            "Retry-After": str(retry_after),
+                            "X-RateLimit-Limit": str(fallback_limit),
+                            "X-RateLimit-Remaining": "0",
+                            "X-RateLimit-Mode": "local-fallback",
+                        },
+                    )
+                    elapsed_ms = (time.perf_counter() - started) * 1000
+                    _record_usage(tenant_id, request, response.status_code, elapsed_ms)
+                    return response
 
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - started) * 1000
