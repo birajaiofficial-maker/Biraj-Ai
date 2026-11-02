@@ -34,6 +34,7 @@ def client(monkeypatch):
     monkeypatch.setattr(main, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(main, "init_db", lambda: None)
     main.app.dependency_overrides[get_db] = override_get_db
+    main._local_rate_limits.clear()
 
     with TestClient(main.app) as test_client:
         yield test_client
@@ -153,6 +154,11 @@ class FakeRedis:
         return [self.counts[key], int(window)]
 
 
+class UnavailableRedis:
+    async def eval(self, *args, **kwargs):
+        raise ConnectionError("Redis is offline")
+
+
 def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypatch):
     fake_redis = FakeRedis()
     monkeypatch.setattr(main, "redis_client", fake_redis)
@@ -183,6 +189,27 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
         headers={"X-API-Key": tenant_b["api_key"]},
     )
     assert first_b.status_code == 200
+
+
+def test_redis_outage_uses_bounded_local_fallback_instead_of_blanket_503(client, monkeypatch):
+    monkeypatch.setattr(main, "redis_client", UnavailableRedis())
+    monkeypatch.setenv("REDIS_URL", "redis://unavailable/0")
+    monkeypatch.setenv("RATE_LIMIT_REQUESTS", "60")
+    monkeypatch.setenv("RATE_LIMIT_FALLBACK_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+
+    tenant = create_tenant(client, "Redis Outage Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+
+    first = client.get("/api/v1/tenant/me", headers=headers)
+    assert first.status_code == 200
+    assert first.headers["x-ratelimit-mode"] == "local-fallback"
+    assert first.headers["x-ratelimit-remaining"] == "0"
+
+    second = client.get("/api/v1/tenant/me", headers=headers)
+    assert second.status_code == 429
+    assert second.headers["x-ratelimit-mode"] == "local-fallback"
+    assert int(second.headers["retry-after"]) >= 1
 
 
 def test_ai_routes_require_tenant_and_inference_is_disabled_by_default(client):
