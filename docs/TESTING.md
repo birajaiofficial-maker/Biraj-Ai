@@ -26,11 +26,11 @@ The repository contains `tests/test_api.py`, `tests/test_tenant_isolation.py` an
 
 ### Verified CI run
 
-- Commit: `d8778c9fba57ed389026d2d00f7958fdd61594b8` (documentation PR head at the time of the run)
-- Workflow: **BIRAJ AI tests**, GitHub Actions run [#10](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41380444571)
+- Commit: `431059bc3e2ba4db1828760cf7206ebff48f2f43` (current documentation PR head)
+- Workflow: **BIRAJ AI tests**, GitHub Actions run [#12](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41400445103)
 - Environment: GitHub-hosted Ubuntu runner, Python 3.11
 - Command: `pytest -q`
 - Result: **5 passed**, 3 warnings; job completed successfully.
 - Warnings observed: Starlette's `httpx` TestClient deprecation, FastAPI `on_event` deprecation, and runner/action Node.js 20 deprecation notice.
 
-This verifies the current five-test baseline at that commit only. It is not a production-readiness or comprehensive security assessment. Re-run CI after subsequent code changes.
+The latest documentation PR head also passed the same five-test baseline in run #12. It is not a production-readiness or comprehensive security assessment. Re-run CI after subsequent code changes.
