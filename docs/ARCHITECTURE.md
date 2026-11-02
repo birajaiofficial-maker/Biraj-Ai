@@ -51,13 +51,13 @@ The inspected repository contains:
 - admin-protected tenant provisioning and activation/deactivation;
 - hashed tenant API-key storage, key listing, creation and revocation;
 - tenant-scoped usage summaries and request-recording middleware;
-- optional Redis-backed per-tenant fixed-window rate limiting;
+- Redis-backed per-tenant fixed-window rate limiting with a bounded per-process local fallback during Redis outages;
 - app/ai.py with authenticated AI status and chat routes;
 - app/providers/cloudflare_workers_ai.py with an HTTPX-based Cloudflare Workers AI adapter;
 - adapter and API test files;
 - a GitHub Actions test workflow.
 
-These are existing foundations, not proof of production readiness. The live Cloudflare account, token permissions, quota and billing behavior have not been verified by these code inspections.
+These are existing foundations, not proof of production readiness. The live Cloudflare account, token permissions, quota and billing behavior have not been verified by these code inspections. During a Redis outage, the local fallback keeps a per-process tenant limit active; it is not a globally shared counter, so deployments with multiple app instances have weaker aggregate enforcement until Redis recovers.
 
 ## 6. Technology inventory
 
@@ -68,7 +68,7 @@ These are existing foundations, not proof of production readiness. The live Clou
 | ORM | SQLAlchemy 2 | Existing |
 | Local database | SQLite default | Development default only |
 | Production database | PostgreSQL is configurable per README | Pending production decision |
-| Rate limiting | Optional Redis integration | Existing; resilience review pending |
+| Rate limiting | Shared Redis fixed-window limiter plus bounded per-process emergency fallback | Implemented; distributed guarantees are reduced while Redis is unavailable |
 | Runtime AI provider | Cloudflare Workers AI REST API | Confirmed |
 | Initial chat model | @cf/zai-org/glm-4.7-flash | Configured default; live quota/access verification pending |
 | Frontend | No frontend framework established | Separate client apps; pending |
@@ -84,4 +84,4 @@ These are existing foundations, not proof of production readiness. The live Clou
 
 ## 8. Remaining decisions and work
 
-See Decision Log. Remaining work includes production database and migrations, memory design, API hardening, rate-limit resilience, observability, deployment, and verification of Cloudflare account-level quota and billing safeguards.
+See Decision Log. Remaining work includes production database and migrations, memory design, API hardening, validation of degraded-mode rate-limit behavior in multi-instance deployments, observability, deployment, and verification of Cloudflare account-level quota and billing safeguards.
