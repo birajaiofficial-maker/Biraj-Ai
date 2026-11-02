@@ -30,6 +30,7 @@ def client(monkeypatch):
             db.close()
 
     monkeypatch.setenv("BIRAJ_ADMIN_KEY", "test-admin-secret")
+    monkeypatch.setenv("BIRAJ_AI_ENABLED", "false")
     monkeypatch.setattr(main, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(main, "init_db", lambda: None)
     main.app.dependency_overrides[get_db] = override_get_db
@@ -182,3 +183,53 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
         headers={"X-API-Key": tenant_b["api_key"]},
     )
     assert first_b.status_code == 200
+
+
+def test_ai_routes_require_tenant_and_inference_is_disabled_by_default(client):
+    assert client.get("/api/v1/ai/status").status_code == 401
+    assert client.post("/api/v1/ai/chat", json={"message": "Hello"}).status_code == 401
+
+    tenant = create_tenant(client, "AI Disabled Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+
+    status = client.get("/api/v1/ai/status", headers=headers)
+    assert status.status_code == 200
+    assert status.json()["provider"] == "cloudflare_workers_ai"
+    assert status.json()["enabled"] is False
+
+    disabled_chat = client.post(
+        "/api/v1/ai/chat",
+        headers=headers,
+        json={"message": "Namaste"},
+    )
+    assert disabled_chat.status_code == 503
+
+
+def test_ai_chat_uses_only_cloudflare_adapter_when_enabled(client, monkeypatch):
+    from app import ai
+
+    tenant = create_tenant(client, "AI Enabled Tenant")
+    monkeypatch.setenv("BIRAJ_AI_ENABLED", "true")
+    captured = {}
+
+    class FakeCloudflareClient:
+        model = "@cf/zai-org/glm-4.7-flash"
+
+        async def generate(self, messages, max_tokens):
+            captured["messages"] = messages
+            captured["max_tokens"] = max_tokens
+            return "Namaste! Main BIRAJ AI hoon."
+
+    monkeypatch.setattr(ai, "CloudflareWorkersAIClient", FakeCloudflareClient)
+    response = client.post(
+        "/api/v1/ai/chat",
+        headers={"X-API-Key": tenant["api_key"]},
+        json={"message": "Namaste"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["provider"] == "cloudflare_workers_ai"
+    assert response.json()["answer"] == "Namaste! Main BIRAJ AI hoon."
+    assert captured["messages"][0]["role"] == "system"
+    assert captured["messages"][1] == {"role": "user", "content": "Namaste"}
+    assert captured["max_tokens"] == 512
