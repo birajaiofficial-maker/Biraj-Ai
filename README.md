@@ -28,6 +28,7 @@ The authoritative technical documentation lives in [`docs/`](docs/README.md):
 - [Decision log](docs/DECISIONS.md)
 - [Testing strategy](docs/TESTING.md)
 - [Module register](docs/modules/README.md)
+- [Branch register](docs/BRANCHES.md)
 
 GitHub Issues track individual tasks and bugs. The documentation is the source of truth for architecture, decisions and project status.
 
@@ -56,7 +57,7 @@ cp .env.example .env
 Set a long, random `BIRAJ_ADMIN_KEY` in `.env`, then run:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --env-file .env
 ```
 
 Open `http://127.0.0.1:8000/docs`.
