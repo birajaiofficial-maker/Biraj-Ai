@@ -123,6 +123,26 @@ def test_admin_authentication_and_usage_validation(client):
     )
     assert invalid_days.status_code == 422
 
+
+def test_tenant_name_is_trimmed_before_length_validation(client):
+    tenant = create_tenant(client, "  Example Tenant  ")
+    assert tenant["tenant_name"] == "Example Tenant"
+
+    whitespace_only = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": "   "},
+    )
+    assert whitespace_only.status_code == 422
+
+    too_short_after_trimming = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": " A "},
+    )
+    assert too_short_after_trimming.status_code == 422
+
+
 class FakeRedis:
     def __init__(self):
         self.counts = {}
@@ -162,4 +182,3 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
         headers={"X-API-Key": tenant_b["api_key"]},
     )
     assert first_b.status_code == 200
-
