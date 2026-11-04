@@ -41,7 +41,7 @@ Notion tracks task status, milestones, approvals and progress. GitHub tracks sou
 
 ## Existing foundation (requires audit)
 
-The existing repository has an early FastAPI/Python backend, tenant/API-key management, SQLAlchemy persistence, usage tracking, Redis rate limiting and tests. Treat every component as unverified until inspected and tested on the active branch.
+The existing repository has an early FastAPI/Python backend, tenant/API-key management, SQLAlchemy persistence, usage tracking, Redis rate limiting and tests. Tenant-name normalization and a bounded process-local rate-limit fallback during Redis outages are now included with regression coverage. These changes have not yet been executed in tests on this branch; treat every component as unverified until tested.
 
 ## Local development
 
