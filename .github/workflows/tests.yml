@@ -2,7 +2,7 @@ name: BIRAJ AI tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, work/open-weight-core]
   pull_request:
     branches: [main]
 

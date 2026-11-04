@@ -1,44 +1,44 @@
 # BIRAJ AI — Core Development Plan
 
-**Current phase:** Phase 0 — repository audit and project baseline  
-**Overall status:** Core platform not complete. No end-user service expansion in this phase.
+**Current phase:** Phase 0 — migration to the open-weight/self-hosted baseline  
+**Overall status:** Core platform incomplete  
+**Model/runtime:** Not selected  
+**Production deployment:** Not configured
 
 ## Working method
 
-Build one component at a time. For each component: define requirements → inspect dependencies → design interface → implement → test → review security → document → mark complete. Integrate components only after their individual gates pass, then run system-level tests.
+For each module: inspect existing code → define requirements → record task and acceptance criteria → design interface → implement the smallest coherent change → test → security review → document → update Notion and GitHub. Integrate modules only after individual gates pass.
 
 ## Phases
 
 | Phase | Scope | Exit gate | Status |
 |---|---|---|---|
-| 0 | Repository audit, baseline, documentation and duplicate-work controls | Existing code and gaps are inventoried; plan approved | In progress |
-| 1 | Requirements and constraints | Functional/non-functional requirements and hardware assumptions recorded | Planned |
-| 2 | Model evaluation and selection | Candidate benchmark, license review, language/quality and resource evaluation documented | Pending decision |
-| 3 | Inference runtime / engine | Runtime selected and model can be served with health/readiness checks | Planned |
-| 4 | Backend and API foundation | Stable versioned API, validation, error handling and model adapter | Existing backend requires audit and extension |
-| 5 | Data layer and migrations | Production database choice, schema and migration workflow verified | Partial foundation |
-| 6 | Memory and retrieval foundation | Scope, persistence, retrieval and retention tests pass | Planned |
-| 7 | Security and access control | Threat review, auth, authorization, secret handling, tenant isolation and audit requirements pass | Partial foundation |
-| 8 | Frontend foundation | UI connects to documented API and handles errors/auth safely | Planned |
-| 9 | Integration and quality | Unit, integration, security and end-to-end gates pass | Planned |
-| 10 | Deployment readiness | Reproducible deployment, backup/restore, monitoring and rollback verified | Planned |
+| 0 | Migrate documentation, branches and project records to the new runtime boundary; preserve old work | No contradictory active architecture; old PRs/branches disposition recorded | In progress |
+| 1 | Requirements and hardware constraints | Functional/non-functional requirements, usage assumptions and hardware profile recorded | Planned |
+| 2 | Model evaluation | Candidate licenses, Hindi/English quality, reasoning/coding, context and resource benchmarks compared | Pending |
+| 3 | Inference runtime | Runtime selected; local serving, API contract, health/readiness and failure behavior verified | Pending |
+| 4 | Backend/API foundation | Versioned API, auth, validation, error handling and internal model adapter pass tests | Partial foundation |
+| 5 | Data and migrations | Database choice, schema, Alembic migration and backup/restore verified | Partial foundation |
+| 6 | Conversation, memory and retrieval | Scope, storage, retrieval, retention, deletion and tenant isolation tests pass | Planned |
+| 7 | Security and access control | Threat review, authz, secrets, tenant isolation, audit and abuse controls pass | Partial foundation |
+| 8 | Frontend | UI integrates with documented API and handles auth/errors safely | Planned |
+| 9 | Integration and quality | Unit, integration, security, load and end-to-end gates pass | Planned |
+| 10 | Deployment readiness | Reproducible self-hosted deployment, monitoring, backup/restore and rollback verified | Planned |
 
-Phases may be refined after the audit, but changes must be recorded in the decision log. Do not skip a phase's exit gate.
+## Phase 0 — immediate sequence
 
-## First work items
-
-1. Audit existing Python modules, API routes, models, security logic and tests.
-2. Run the current automated test suite and record the actual result.
-3. Identify security and architecture gaps without rewriting working code unnecessarily.
-4. Capture functional and non-functional requirements.
-5. Evaluate model candidates against those requirements before selecting a model or engine.
+1. Establish this branch as the new migration baseline.
+2. Replace hosted-provider architecture references with the self-hosted open-weight boundary.
+3. Keep PR #1 (Ollama/Qwen experiment) unmerged pending model/runtime evaluation.
+4. Keep PR #4 (Cloudflare provider change) unmerged and exclude it from the new baseline.
+5. Reconcile the branch register and avoid deleting historical branches until unique commits are accounted for.
+6. Align Notion dashboard, task tracker and decision/change records with this branch.
+7. Review the current backend on this branch and identify which safe non-provider changes can be ported independently. (Tenant-name normalization and Redis outage fallback are present; the fallback is explicitly process-local and not a distributed quota. Ollama and Cloudflare provider implementations remain excluded.)
 
 ## Explicitly out of scope until core completion
 
-- Customer-facing service catalog expansion and vertical-specific workflows.
-- Pricing, subscriptions, monetization, marketing and promotion planning.
-- Production launch claims before deployment and security gates pass.
+Pricing, subscriptions, monetization, marketing, customer-specific deployments, paid GPU/cloud commitments and hosted model APIs.
 
-## Completion definition
+## Definition of core completion
 
-The core platform is complete only when the chosen model runs through the selected inference runtime; the backend, API, data, memory, security and frontend are integrated; automated tests pass; operational and security checks are documented; and deployment/rollback has been verified.
+Core is complete only when a licensed open-weight model runs through the selected self-hosted inference runtime; API, orchestration, data, memory, security and UI are integrated; automated tests pass; operational and security checks are documented; and self-hosted deployment, backup/restore and rollback are verified.
