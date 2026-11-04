@@ -88,23 +88,26 @@ class GenerationRequest:
     max_new_tokens: int | None = None
     stop: tuple[str, ...] = ()
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    limits: GenerationLimits = field(default_factory=GenerationLimits, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.prompt, str):
             raise AdapterRequestError("prompt must be a string")
         if not self.prompt.strip():
             raise AdapterRequestError("prompt must not be empty or whitespace-only")
-        if len(self.prompt) > MAX_PROMPT_CHARS:
+        if not isinstance(self.limits, GenerationLimits):
+            raise AdapterRequestError("limits must be a GenerationLimits instance")
+        if len(self.prompt) > self.limits.max_prompt_chars:
             raise AdapterRequestError(
-                f"prompt exceeds maximum length of {MAX_PROMPT_CHARS} characters"
+                f"prompt exceeds maximum length of {self.limits.max_prompt_chars} characters"
             )
         if self.system_prompt is not None:
             if not isinstance(self.system_prompt, str):
                 raise AdapterRequestError("system_prompt must be a string or None")
-            if len(self.system_prompt) > MAX_SYSTEM_PROMPT_CHARS:
+            if len(self.system_prompt) > self.limits.max_system_prompt_chars:
                 raise AdapterRequestError(
                     "system_prompt exceeds maximum length of "
-                    f"{MAX_SYSTEM_PROMPT_CHARS} characters"
+                    f"{self.limits.max_system_prompt_chars} characters"
                 )
         if self.temperature is not None:
             if isinstance(self.temperature, bool) or not isinstance(
