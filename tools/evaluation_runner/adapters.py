@@ -6,13 +6,49 @@ Future runtime adapters must implement the same ModelAdapter protocol.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+import math
 from typing import Any, Protocol
+
+
+MAX_PROMPT_CHARS = 100_000
+MAX_SYSTEM_PROMPT_CHARS = 20_000
+MAX_NEW_TOKENS = 8_192
+MAX_STOP_SEQUENCES = 16
+MAX_STOP_SEQUENCE_CHARS = 256
+
+
+def _freeze_json_value(value: Any, *, path: str = "metadata") -> Any:
+    """Validate JSON-compatible metadata and recursively make it immutable."""
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise AdapterRequestError(f"{path} must not contain NaN or infinity")
+        return value
+    if isinstance(value, Mapping):
+        frozen: dict[str, Any] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise AdapterRequestError(f"{path} keys must be strings")
+            frozen[key] = _freeze_json_value(item, path=f"{path}.{key}")
+        from types import MappingProxyType
+
+        return MappingProxyType(frozen)
+    if isinstance(value, (list, tuple)):
+        return tuple(
+            _freeze_json_value(item, path=f"{path}[{index}]")
+            for index, item in enumerate(value)
+        )
+    raise AdapterRequestError(
+        f"{path} must contain only JSON-compatible values"
+    )
 
 
 @dataclass(frozen=True)
 class GenerationRequest:
-    """One generation request independent of the selected runtime."""
+    """One validated generation request independent of the selected runtime."""
 
     prompt: str
     system_prompt: str | None = None
@@ -20,7 +56,64 @@ class GenerationRequest:
     top_p: float | None = None
     max_new_tokens: int | None = None
     stop: tuple[str, ...] = ()
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.prompt, str):
+            raise AdapterRequestError("prompt must be a string")
+        if len(self.prompt) > MAX_PROMPT_CHARS:
+            raise AdapterRequestError(
+                f"prompt exceeds maximum length of {MAX_PROMPT_CHARS} characters"
+            )
+        if self.system_prompt is not None:
+            if not isinstance(self.system_prompt, str):
+                raise AdapterRequestError("system_prompt must be a string or None")
+            if len(self.system_prompt) > MAX_SYSTEM_PROMPT_CHARS:
+                raise AdapterRequestError(
+                    "system_prompt exceeds maximum length of "
+                    f"{MAX_SYSTEM_PROMPT_CHARS} characters"
+                )
+        if self.temperature is not None:
+            if isinstance(self.temperature, bool) or not isinstance(
+                self.temperature, (int, float)
+            ):
+                raise AdapterRequestError("temperature must be a number or None")
+            if not math.isfinite(self.temperature) or not 0 <= self.temperature <= 2:
+                raise AdapterRequestError("temperature must be between 0 and 2")
+        if self.top_p is not None:
+            if isinstance(self.top_p, bool) or not isinstance(self.top_p, (int, float)):
+                raise AdapterRequestError("top_p must be a number or None")
+            if not math.isfinite(self.top_p) or not 0 < self.top_p <= 1:
+                raise AdapterRequestError("top_p must be greater than 0 and at most 1")
+        if self.max_new_tokens is not None:
+            if (
+                isinstance(self.max_new_tokens, bool)
+                or not isinstance(self.max_new_tokens, int)
+                or not 1 <= self.max_new_tokens <= MAX_NEW_TOKENS
+            ):
+                raise AdapterRequestError(
+                    f"max_new_tokens must be an integer between 1 and {MAX_NEW_TOKENS}"
+                )
+        if not isinstance(self.stop, (tuple, list)):
+            raise AdapterRequestError("stop must be a list or tuple of strings")
+        if len(self.stop) > MAX_STOP_SEQUENCES:
+            raise AdapterRequestError(
+                f"stop must contain at most {MAX_STOP_SEQUENCES} sequences"
+            )
+        if any(
+            not isinstance(sequence, str)
+            or not sequence
+            or len(sequence) > MAX_STOP_SEQUENCE_CHARS
+            for sequence in self.stop
+        ):
+            raise AdapterRequestError(
+                "each stop sequence must be a non-empty string of at most "
+                f"{MAX_STOP_SEQUENCE_CHARS} characters"
+            )
+        object.__setattr__(self, "stop", tuple(self.stop))
+        if not isinstance(self.metadata, Mapping):
+            raise AdapterRequestError("metadata must be a mapping")
+        object.__setattr__(self, "metadata", _freeze_json_value(self.metadata))
 
 
 @dataclass(frozen=True)
@@ -42,6 +135,10 @@ class GenerationResult:
 
 class AdapterError(RuntimeError):
     """Base class for normalized adapter failures."""
+
+
+class AdapterRequestError(AdapterError):
+    """Raised when a generation request is invalid or exceeds safe bounds."""
 
 
 class AdapterUnavailableError(AdapterError):
