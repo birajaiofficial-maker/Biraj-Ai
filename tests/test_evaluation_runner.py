@@ -5,7 +5,6 @@ import pytest
 
 from tools.evaluation_runner.adapters import (
     AdapterRequestError,
-    AdapterResponseError,
     AdapterUnavailableError,
     GenerationRequest,
     MockAdapter,
@@ -167,11 +166,10 @@ def test_mock_adapter_rejects_unavailable_runtime():
         adapter.generate(GenerationRequest(prompt="hello"))
 
 
-def test_mock_adapter_rejects_empty_prompt():
-    adapter = MockAdapter()
-
-    with pytest.raises(AdapterResponseError, match="Prompt must not be empty"):
-        adapter.generate(GenerationRequest(prompt="  "))
+@pytest.mark.parametrize("prompt", ["", "   ", "\\n\\t"])
+def test_generation_request_rejects_empty_or_whitespace_prompt(prompt):
+    with pytest.raises(AdapterRequestError, match="prompt must not be empty"):
+        GenerationRequest(prompt=prompt)
 
 
 
@@ -181,9 +179,11 @@ def test_mock_adapter_rejects_empty_prompt():
         ("temperature", -0.01),
         ("temperature", 2.01),
         ("temperature", float("nan")),
+        ("temperature", 10**1000),
         ("top_p", 0),
         ("top_p", 1.01),
         ("top_p", float("inf")),
+        ("top_p", 10**1000),
         ("max_new_tokens", 0),
         ("max_new_tokens", 8193),
         ("max_new_tokens", 1.5),
