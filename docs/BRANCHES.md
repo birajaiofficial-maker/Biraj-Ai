@@ -22,6 +22,8 @@ This file records the verified branch/PR state as inspected during migration. Re
 
 PR #4 is not solely a tenant-name fix; its diff includes Cloudflare Workers AI integration, Cloudflare-only decisions and tests. The PR remains open and unmerged at the time of this record.
 
+Selective reconciliation on `work/open-weight-core` (2026-11-04): tenant-name normalization and bounded per-process Redis-outage fallback were reimplemented with regression tests. Cloudflare provider code and Ollama/Qwen provider defaults were not ported. Tests have not yet been executed on this branch. PR #1 and PR #4 remain open and unmerged; no historical branches were deleted.
+
 ## New workflow
 
 - Work sequentially on `work/open-weight-core`.
@@ -34,7 +36,7 @@ PR #4 is not solely a tenant-name fix; its diff includes Cloudflare Workers AI i
 ## Reconciliation checklist
 
 - [ ] Compare all unique commits in legacy branches with `main` and the new branch.
-- [ ] Identify provider-independent changes worth porting (for example, tenant validation fix).
-- [ ] Reimplement or selectively port accepted changes with tests.
+- [x] Identify provider-independent changes worth porting (tenant validation and Redis outage resilience).
+- [x] Reimplement tenant validation and Redis outage fallback with regression tests (execution still pending).
 - [ ] Record final disposition of PR #1 and PR #4.
 - [ ] Only then propose closing or deleting historical branches for explicit approval.
