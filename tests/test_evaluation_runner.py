@@ -294,3 +294,75 @@ def test_generation_limits_reject_non_positive_or_non_integer_values(field, valu
 
     with pytest.raises(AdapterRequestError, match="positive integer"):
         GenerationLimits(**{field: value})
+
+
+def test_record_score_rejects_duplicate_prompt_attempt_without_overwriting_evidence(tmp_path, capsys):
+    assert main([
+        "new-run",
+        "--model-id",
+        "test-candidate",
+        "--output-dir",
+        str(tmp_path),
+    ]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+
+    assert main([
+        "record-response",
+        "--run-dir", str(run_dir),
+        "--prompt-id", "HI-01",
+        "--response", "नमस्ते",
+    ]) == 0
+    capsys.readouterr()
+
+    score_file = tmp_path / "score.json"
+    score_file.write_text(json.dumps({"language_0_4": 4}), encoding="utf-8")
+    command = [
+        "record-score",
+        "--run-dir", str(run_dir),
+        "--prompt-id", "HI-01",
+        "--attempt", "1",
+        "--scorecard-file", str(score_file),
+    ]
+    assert main(command) == 0
+    capsys.readouterr()
+    original = (run_dir / "scorecards.jsonl").read_text(encoding="utf-8")
+
+    assert main(command) == 2
+    assert "already exists" in capsys.readouterr().err
+    assert (run_dir / "scorecards.jsonl").read_text(encoding="utf-8") == original
+    assert len(original.splitlines()) == 1
+
+
+def test_record_response_preserves_failed_and_skipped_attempts(tmp_path, capsys):
+    assert main([
+        "new-run",
+        "--model-id",
+        "test-candidate",
+        "--output-dir",
+        str(tmp_path),
+    ]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+
+    for status, note in (("failed", "runtime unavailable"), ("skipped", "manual skip")):
+        assert main([
+            "record-response",
+            "--run-dir", str(run_dir),
+            "--prompt-id", "HI-01",
+            "--status", status,
+            "--failure-note", note,
+        ]) == 0
+        capsys.readouterr()
+
+    records = [
+        json.loads(line)
+        for line in (run_dir / "responses.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert [(item["attempt"], item["status"]) for item in records] == [
+        (1, "failed"),
+        (2, "skipped"),
+    ]
+    assert all(item["response_text"] is None for item in records)
+    assert [item["failure_note"] for item in records] == [
+        "runtime unavailable",
+        "manual skip",
+    ]
