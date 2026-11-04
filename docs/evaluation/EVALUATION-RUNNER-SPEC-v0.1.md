@@ -106,6 +106,8 @@ Required: run ID, prompt ID, reviewer identifier/label, review timestamp, and ap
 - If any required category has no valid observations, overall score is `incomplete`, not zero and not a partial weighted score.
 - Runtime performance is a separate report section and must never be folded into the human quality score.
 - Hard review gates (license, harmful compliance, secret exposure, reproducibility and hardware feasibility) remain visible and cannot be averaged away.
+- Each hard review gate is recorded as pending/pass/blocked in JSON and Markdown reports.
+- Missing context-size, system-RAM and GPU-VRAM measurements are recorded explicitly as unknown.
 - Compare candidates only when prompt suite, model revision, quantization, runtime settings and context budget are sufficiently aligned. Record differences.
 
 ## 8. Privacy, safety and resource controls
