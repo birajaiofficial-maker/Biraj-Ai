@@ -264,7 +264,7 @@ def test_generation_request_uses_configurable_resource_limits():
         prompt="hello",
         system_prompt="safe",
         max_new_tokens=3,
-        stop=("END",) if False else ("OK",),
+        stop=("OK",),
         limits=limits,
     )
     assert request.limits is limits
