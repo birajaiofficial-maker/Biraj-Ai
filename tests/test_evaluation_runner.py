@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from tools.evaluation_runner.adapters import (
+    AdapterRequestError,
     AdapterResponseError,
     AdapterUnavailableError,
     GenerationRequest,
@@ -171,3 +172,78 @@ def test_mock_adapter_rejects_empty_prompt():
 
     with pytest.raises(AdapterResponseError, match="Prompt must not be empty"):
         adapter.generate(GenerationRequest(prompt="  "))
+
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("temperature", -0.01),
+        ("temperature", 2.01),
+        ("temperature", float("nan")),
+        ("top_p", 0),
+        ("top_p", 1.01),
+        ("top_p", float("inf")),
+        ("max_new_tokens", 0),
+        ("max_new_tokens", 8193),
+        ("max_new_tokens", 1.5),
+    ],
+)
+def test_generation_request_rejects_invalid_generation_parameters(field, value):
+    with pytest.raises(AdapterRequestError):
+        GenerationRequest(prompt="hello", **{field: value})
+
+
+def test_generation_request_accepts_parameter_boundaries():
+    request = GenerationRequest(
+        prompt="hello",
+        temperature=0,
+        top_p=1,
+        max_new_tokens=8192,
+    )
+
+    assert request.temperature == 0
+    assert request.top_p == 1
+    assert request.max_new_tokens == 8192
+
+
+def test_generation_request_rejects_prompt_and_system_prompt_over_limits():
+    from tools.evaluation_runner.adapters import (
+        MAX_PROMPT_CHARS,
+        MAX_SYSTEM_PROMPT_CHARS,
+    )
+
+    with pytest.raises(AdapterRequestError, match="prompt exceeds maximum"):
+        GenerationRequest(prompt="x" * (MAX_PROMPT_CHARS + 1))
+    with pytest.raises(AdapterRequestError, match="system_prompt exceeds maximum"):
+        GenerationRequest(
+            prompt="hello",
+            system_prompt="x" * (MAX_SYSTEM_PROMPT_CHARS + 1),
+        )
+
+
+def test_generation_request_rejects_invalid_stop_sequences():
+    with pytest.raises(AdapterRequestError, match="stop sequence"):
+        GenerationRequest(prompt="hello", stop=("",))
+    with pytest.raises(AdapterRequestError, match="at most"):
+        GenerationRequest(prompt="hello", stop=tuple(str(i) for i in range(17)))
+
+
+def test_generation_request_metadata_is_recursively_immutable():
+    source = {"labels": ["alpha"], "nested": {"enabled": True}}
+    request = GenerationRequest(prompt="hello", metadata=source)
+
+    source["labels"].append("changed")
+    source["nested"]["enabled"] = False
+
+    assert request.metadata["labels"] == ("alpha",)
+    assert request.metadata["nested"]["enabled"] is True
+    with pytest.raises(TypeError):
+        request.metadata["new"] = "value"
+    with pytest.raises(TypeError):
+        request.metadata["nested"]["enabled"] = False
+
+
+def test_generation_request_rejects_non_json_metadata():
+    with pytest.raises(AdapterRequestError, match="JSON-compatible"):
+        GenerationRequest(prompt="hello", metadata={"bad": object()})
