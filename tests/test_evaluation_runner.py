@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from tools.evaluation_runner.adapters import (
+    AdapterResponseError,
     AdapterUnavailableError,
     GenerationRequest,
     MockAdapter,
@@ -168,5 +169,5 @@ def test_mock_adapter_rejects_unavailable_runtime():
 def test_mock_adapter_rejects_empty_prompt():
     adapter = MockAdapter()
 
-    with pytest.raises(ValueError, match="Prompt must not be empty"):
+    with pytest.raises(AdapterResponseError, match="Prompt must not be empty"):
         adapter.generate(GenerationRequest(prompt="  "))
