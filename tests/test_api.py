@@ -204,9 +204,11 @@ def test_redis_outage_uses_bounded_local_fallback_instead_of_blanket_503(client,
     first = client.get("/api/v1/tenant/me", headers=headers)
     assert first.status_code == 200
     assert first.headers["x-ratelimit-mode"] == "local-fallback"
+    assert first.headers["x-ratelimit-scope"] == "process"
     assert first.headers["x-ratelimit-remaining"] == "0"
 
     second = client.get("/api/v1/tenant/me", headers=headers)
     assert second.status_code == 429
     assert second.headers["x-ratelimit-mode"] == "local-fallback"
+    assert second.headers["x-ratelimit-scope"] == "process"
     assert int(second.headers["retry-after"]) >= 1
