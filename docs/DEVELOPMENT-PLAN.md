@@ -33,7 +33,7 @@ For each module: inspect existing code → define requirements → record task a
 4. Keep PR #4 (Cloudflare provider change) unmerged and exclude it from the new baseline.
 5. Reconcile the branch register and avoid deleting historical branches until unique commits are accounted for.
 6. Align Notion dashboard, task tracker and decision/change records with this branch.
-7. Review the current backend on this branch and identify which safe non-provider changes can be ported independently. (Completed for tenant-name normalization and Redis outage fallback; Ollama and Cloudflare provider implementations remain excluded.)
+7. Review the current backend on this branch and identify which safe non-provider changes can be ported independently. (Tenant-name normalization and Redis outage fallback are present; the fallback is explicitly process-local and not a distributed quota. Ollama and Cloudflare provider implementations remain excluded.)
 
 ## Explicitly out of scope until core completion
 
