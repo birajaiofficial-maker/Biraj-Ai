@@ -32,10 +32,10 @@ GenerationRequest carries prompt, optional system prompt, temperature, top-p, ma
 GenerationResult carries text, model/runtime identity, optional token counts, TTFT, generation duration, throughput, finish reason and raw non-secret metadata.
 
 Request validation and resource bounds:
-- Prompt: non-empty at generation time; maximum 100,000 characters.
+- Prompt: must be non-empty and not whitespace-only at request construction; maximum 100,000 characters.
 - System prompt: maximum 20,000 characters.
-- Temperature: finite number from 0 through 2.
-- Top-p: finite number greater than 0 and at most 1.
+- Temperature: finite number from 0 through 2; extreme integers that cannot be represented as finite floats are rejected.
+- Top-p: finite number greater than 0 and at most 1; extreme integers that cannot be represented as finite floats are rejected.
 - Max-new-tokens: integer from 1 through 8,192.
 - Stop sequences: at most 16 non-empty strings, each at most 256 characters.
 - Metadata: recursively immutable, JSON-compatible values only; non-string object keys, non-finite numbers and arbitrary objects are rejected.
