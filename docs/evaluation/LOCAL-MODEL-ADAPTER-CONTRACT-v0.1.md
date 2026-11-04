@@ -27,11 +27,21 @@ All adapters implement:
 - `model_info() -> dict`: model identity and runtime metadata.
 - `generate(GenerationRequest) -> GenerationResult`: one normalized generation.
 
-GenerationRequest carries prompt, optional system prompt, temperature, top-p, max-new-tokens, stop sequences and non-secret metadata.
+GenerationRequest carries prompt, optional system prompt, temperature, top-p, max-new-tokens, stop sequences and non-secret JSON-compatible metadata. The request validates its inputs at construction and recursively freezes metadata so later caller mutation cannot change the request.
 
 GenerationResult carries text, model/runtime identity, optional token counts, TTFT, generation duration, throughput, finish reason and raw non-secret metadata.
 
+Request validation and resource bounds:
+- Prompt: non-empty at generation time; maximum 100,000 characters.
+- System prompt: maximum 20,000 characters.
+- Temperature: finite number from 0 through 2.
+- Top-p: finite number greater than 0 and at most 1.
+- Max-new-tokens: integer from 1 through 8,192.
+- Stop sequences: at most 16 non-empty strings, each at most 256 characters.
+- Metadata: recursively immutable, JSON-compatible values only; non-string object keys, non-finite numbers and arbitrary objects are rejected.
+
 Normalized failures:
+- `AdapterRequestError` — invalid request or exceeded contract bounds.
 - `AdapterUnavailableError`
 - `AdapterTimeoutError`
 - `AdapterResponseError`
@@ -74,6 +84,7 @@ These are planned adapters, not implemented integrations.
 
 - A typed, provider-neutral contract exists.
 - Mock adapter supports health, model info and generation.
+- Request construction enforces documented parameter ranges, input-size bounds and immutable metadata.
 - Mock output and errors are deterministic and tested.
 - Core tests can use the mock without installing a runtime.
 - Future runtime adapters can implement the protocol without changing request/result consumers.
