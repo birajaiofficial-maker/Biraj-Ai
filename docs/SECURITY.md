@@ -38,7 +38,7 @@
 - Distinguish liveness from readiness.
 - Use bounded timeouts and resource limits.
 - Document Redis/inference/database outage behavior.
-- Degraded local rate limiting is not equivalent to globally shared enforcement across multiple app instances.
+- When Redis is configured but unavailable, the API uses a bounded per-process emergency rate limiter rather than denying every authenticated request. This fallback is not globally shared across multiple app instances; monitor and restore Redis.
 
 ## Release gates
 
