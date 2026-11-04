@@ -166,7 +166,7 @@ def test_mock_adapter_rejects_unavailable_runtime():
         adapter.generate(GenerationRequest(prompt="hello"))
 
 
-@pytest.mark.parametrize("prompt", ["", "   ", "\\n\\t"])
+@pytest.mark.parametrize("prompt", ["", "   ", "\n\t"])
 def test_generation_request_rejects_empty_or_whitespace_prompt(prompt):
     with pytest.raises(AdapterRequestError, match="prompt must not be empty"):
         GenerationRequest(prompt=prompt)
