@@ -181,16 +181,17 @@ def command_new_run(args: argparse.Namespace) -> int:
         "model_id": args.model_id,
         "model_revision": args.model_revision or "unknown",
         "license_review": args.license_review,
+        "review_gates": {"license_review": args.license_review, "harmful_compliance": args.harmful_compliance, "secret_exposure": args.secret_exposure, "reproducibility": args.reproducibility, "hardware_feasibility": args.hardware_feasibility},
         "quantization": args.quantization or "unknown",
         "runtime": args.runtime,
         "runtime_version": args.runtime_version or "unknown",
-        "context_tokens": args.context_tokens,
+        "context_tokens": args.context_tokens if args.context_tokens is not None else "unknown",
         "hardware": {
             "os": sys.platform,
             "cpu": args.cpu or "unknown",
-            "system_ram_mb": args.system_ram_mb,
+            "system_ram_mb": args.system_ram_mb if args.system_ram_mb is not None else "unknown",
             "gpu": args.gpu or "unknown",
-            "gpu_vram_mb": args.gpu_vram_mb,
+            "gpu_vram_mb": args.gpu_vram_mb if args.gpu_vram_mb is not None else "unknown",
         },
         "decoding_settings": args.decoding_settings or {},
     }
@@ -273,6 +274,8 @@ def command_record_score(args: argparse.Namespace) -> int:
         )
 
     score = json.loads(Path(args.scorecard_file).read_text(encoding="utf-8"))
+    if not isinstance(score, dict):
+        raise ValueError("Scorecard JSON must contain an object")
     for field in DIMENSIONS:
         value = score.get(field)
         if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 4):
@@ -422,7 +425,7 @@ def command_report(args: argparse.Namespace) -> int:
             "english_auxiliary_mean_0_4": statistics.mean(auxiliary_scores) if auxiliary_scores else None,
         },
         "runtime_metrics": runtime_metrics,
-        "review_gates": {"license_review": metadata["license_review"]},
+        "review_gates": metadata.get("review_gates", {"license_review": metadata.get("license_review", "unknown"), "harmful_compliance": "unknown", "secret_exposure": "unknown", "reproducibility": "unknown", "hardware_feasibility": "unknown"}),
     }
     write_json(run_dir / "report.json", report)
     (run_dir / "report.md").write_text(markdown_report(report), encoding="utf-8")
@@ -451,6 +454,10 @@ def build_parser() -> argparse.ArgumentParser:
     new_run.add_argument("--model-id", required=True)
     new_run.add_argument("--model-revision")
     new_run.add_argument("--license-review", choices=("pending", "pass", "blocked"), default="pending")
+    new_run.add_argument("--harmful-compliance", choices=("pending", "pass", "blocked"), default="pending")
+    new_run.add_argument("--secret-exposure", choices=("pending", "pass", "blocked"), default="pending")
+    new_run.add_argument("--reproducibility", choices=("pending", "pass", "blocked"), default="pending")
+    new_run.add_argument("--hardware-feasibility", choices=("pending", "pass", "blocked"), default="pending")
     new_run.add_argument("--quantization")
     new_run.add_argument("--runtime", default="manual/offline")
     new_run.add_argument("--runtime-version")
