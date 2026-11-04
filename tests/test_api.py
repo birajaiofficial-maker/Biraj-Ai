@@ -32,6 +32,7 @@ def client(monkeypatch):
     monkeypatch.setenv("BIRAJ_ADMIN_KEY", "test-admin-secret")
     monkeypatch.setattr(main, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(main, "init_db", lambda: None)
+    main._local_rate_limits.clear()
     main.app.dependency_overrides[get_db] = override_get_db
 
     with TestClient(main.app) as test_client:
@@ -163,3 +164,49 @@ def test_redis_rate_limit_is_per_tenant_and_returns_retry_after(client, monkeypa
     )
     assert first_b.status_code == 200
 
+
+
+
+def test_tenant_name_is_trimmed_before_length_validation(client):
+    tenant = create_tenant(client, "  Example Tenant  ")
+    assert tenant["tenant_name"] == "Example Tenant"
+
+    whitespace_only = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": "   "},
+    )
+    assert whitespace_only.status_code == 422
+
+    too_short_after_trimming = client.post(
+        "/api/v1/admin/tenants",
+        headers={"X-Admin-Key": "test-admin-secret"},
+        json={"name": " A "},
+    )
+    assert too_short_after_trimming.status_code == 422
+
+
+class UnavailableRedis:
+    async def eval(self, *args, **kwargs):
+        raise ConnectionError("Redis is offline")
+
+
+def test_redis_outage_uses_bounded_local_fallback_instead_of_blanket_503(client, monkeypatch):
+    monkeypatch.setattr(main, "redis_client", UnavailableRedis())
+    monkeypatch.setenv("REDIS_URL", "redis://unavailable/0")
+    monkeypatch.setenv("RATE_LIMIT_REQUESTS", "60")
+    monkeypatch.setenv("RATE_LIMIT_FALLBACK_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW_SECONDS", "60")
+
+    tenant = create_tenant(client, "Redis Outage Tenant")
+    headers = {"X-API-Key": tenant["api_key"]}
+
+    first = client.get("/api/v1/tenant/me", headers=headers)
+    assert first.status_code == 200
+    assert first.headers["x-ratelimit-mode"] == "local-fallback"
+    assert first.headers["x-ratelimit-remaining"] == "0"
+
+    second = client.get("/api/v1/tenant/me", headers=headers)
+    assert second.status_code == 429
+    assert second.headers["x-ratelimit-mode"] == "local-fallback"
+    assert int(second.headers["retry-after"]) >= 1
