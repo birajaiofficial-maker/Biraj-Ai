@@ -3,6 +3,11 @@ from pathlib import Path
 
 import pytest
 
+from tools.evaluation_runner.adapters import (
+    AdapterUnavailableError,
+    GenerationRequest,
+    MockAdapter,
+)
 from tools.evaluation_runner.runner import (
     DIMENSIONS,
     WEIGHTED_CATEGORIES,
@@ -17,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_repository_prompt_suite_parses_all_stable_ids():
-    suite = ROOT / "docs/evaluation" / "BIRAJ-PROMPT-SUITE-v0.1.md"
+    suite = ROOT / "docs" / "evaluation" / "BIRAJ-PROMPT-SUITE-v0.1.md"
     prompts = parse_prompt_suite(suite.read_text(encoding="utf-8"))
 
     assert len(prompts) == 20
@@ -97,7 +102,7 @@ def test_report_keeps_runtime_metrics_separate_from_weighted_quality(tmp_path, c
         append_jsonl(run_dir / "scorecards.jsonl", {
             "prompt_id": prompt["prompt_id"],
             "attempt": 1,
-            "scores": {dimension: score if dimension in DIMENSIONS else None for dimension in DIMENSIONS},
+            "scores": {dimension: score for dimension in DIMENSIONS},
         })
 
     assert main(["report", "--run-dir", str(run_dir)]) == 0
@@ -130,3 +135,38 @@ def test_report_marks_quality_incomplete_when_required_categories_are_missing(tm
     assert report["quality"]["status"] == "incomplete"
     assert report["quality"]["weighted_score_0_4"] is None
     assert len(report["quality"]["missing_categories"]) == 5
+
+
+def test_mock_adapter_implements_provider_neutral_contract():
+    adapter = MockAdapter(response_text="नमस्ते — mock response")
+    request = GenerationRequest(
+        prompt="हिंदी में नमस्ते कहो",
+        system_prompt="तुम BIRAJ AI हो",
+        temperature=0.2,
+        max_new_tokens=64,
+    )
+
+    assert adapter.health() is True
+    assert adapter.model_info()["runtime_name"] == "mock/offline"
+    result = adapter.generate(request)
+
+    assert result.text == "नमस्ते — mock response"
+    assert result.model_id == "biraj-mock-model"
+    assert result.runtime_name == "mock/offline"
+    assert result.raw_metadata["mock"] is True
+    assert adapter.requests == [request]
+
+
+def test_mock_adapter_rejects_unavailable_runtime():
+    adapter = MockAdapter(available=False)
+
+    assert adapter.health() is False
+    with pytest.raises(AdapterUnavailableError):
+        adapter.generate(GenerationRequest(prompt="hello"))
+
+
+def test_mock_adapter_rejects_empty_prompt():
+    adapter = MockAdapter()
+
+    with pytest.raises(ValueError, match="Prompt must not be empty"):
+        adapter.generate(GenerationRequest(prompt="  "))
