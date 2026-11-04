@@ -8,6 +8,8 @@ This folder is the technical source of truth for system architecture, developmen
 - [Development plan](DEVELOPMENT-PLAN.md) — ordered phases, dependencies and exit gates.
 - [Decision log](DECISIONS.md) — accepted decisions and pending choices.
 - [Model and runtime evaluation](MODEL-EVALUATION.md) — model/runtime selection criteria; no model is preselected.
+- [Evaluation prompt suite](evaluation/BIRAJ-PROMPT-SUITE-v0.1.md) — fixed initial Hindi, Hinglish, English, coding, reasoning, JSON, retrieval and safety prompts.
+- [Evaluation scoring guide](evaluation/SCORING-GUIDE-v0.1.md) — human scoring rubric, runtime metrics, review gates and scorecard template.
 - [Module register](modules/README.md) — one index of modules and their implementation status.
 - [Development workflow](DEVELOPMENT-WORKFLOW.md) — task, branch, PR, testing and update rules.
 - [Testing strategy](TESTING.md) — test levels and quality gates.
