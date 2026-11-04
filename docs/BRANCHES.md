@@ -22,7 +22,7 @@ This file records the verified branch/PR state as inspected during migration. Re
 
 PR #4 is not solely a tenant-name fix; its diff includes Cloudflare Workers AI integration, Cloudflare-only decisions and tests. The PR remains open and unmerged at the time of this record.
 
-Selective reconciliation on `work/open-weight-core` (2026-11-04): tenant-name normalization and bounded per-process Redis-outage fallback were reimplemented with regression tests. Cloudflare provider code and Ollama/Qwen provider defaults were not ported. Tests have not yet been executed on this branch. PR #1 and PR #4 remain open and unmerged; no historical branches were deleted.
+Selective reconciliation on `work/open-weight-core` (2026-11-04): tenant-name normalization and bounded per-process Redis-outage fallback were reimplemented with regression tests. Cloudflare provider code and Ollama/Qwen provider defaults were not ported. GitHub Actions run [#33](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41746723627) passed (7 tests). Compare results: `feature/local-open-model-runtime` is 9 commits ahead / 23 behind the new branch; its unique changes are the five PR #1 files (.env.example, README.md, app/ai.py, app/main.py, tests/test_api.py). `work/core-platform` is 23 commits ahead / 22 behind; its unique changes include the Cloudflare adapter/configuration, provider-specific tests, tenant validation, Redis fallback and API contract/policy documentation. Only the two provider-independent code fixes were ported. PR #1 and PR #4 remain open and unmerged; no historical branches were deleted.
 
 ## New workflow
 
@@ -35,8 +35,8 @@ Selective reconciliation on `work/open-weight-core` (2026-11-04): tenant-name no
 
 ## Reconciliation checklist
 
-- [ ] Compare all unique commits in legacy branches with `main` and the new branch.
+- [x] Compare unique commits and changed files in both legacy source branches against `work/open-weight-core`.
 - [x] Identify provider-independent changes worth porting (tenant validation and Redis outage resilience).
 - [x] Reimplement tenant validation and Redis outage fallback with regression tests (execution still pending).
-- [ ] Record final disposition of PR #1 and PR #4.
+- [x] Record final disposition: both PRs remain open/unmerged and excluded from the new baseline.
 - [ ] Only then propose closing or deleting historical branches for explicit approval.
