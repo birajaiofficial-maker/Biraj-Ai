@@ -19,12 +19,20 @@ MAX_STOP_SEQUENCES = 16
 MAX_STOP_SEQUENCE_CHARS = 256
 
 
+def _is_finite_number(value: int | float) -> bool:
+    """Return False for non-finite values and integers too large for float conversion."""
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _freeze_json_value(value: Any, *, path: str = "metadata") -> Any:
     """Validate JSON-compatible metadata and recursively make it immutable."""
     if value is None or isinstance(value, (str, bool, int)):
         return value
     if isinstance(value, float):
-        if not math.isfinite(value):
+        if not _is_finite_number(value):
             raise AdapterRequestError(f"{path} must not contain NaN or infinity")
         return value
     if isinstance(value, Mapping):
@@ -61,6 +69,8 @@ class GenerationRequest:
     def __post_init__(self) -> None:
         if not isinstance(self.prompt, str):
             raise AdapterRequestError("prompt must be a string")
+        if not self.prompt.strip():
+            raise AdapterRequestError("prompt must not be empty or whitespace-only")
         if len(self.prompt) > MAX_PROMPT_CHARS:
             raise AdapterRequestError(
                 f"prompt exceeds maximum length of {MAX_PROMPT_CHARS} characters"
@@ -78,12 +88,12 @@ class GenerationRequest:
                 self.temperature, (int, float)
             ):
                 raise AdapterRequestError("temperature must be a number or None")
-            if not math.isfinite(self.temperature) or not 0 <= self.temperature <= 2:
+            if not _is_finite_number(self.temperature) or not 0 <= self.temperature <= 2:
                 raise AdapterRequestError("temperature must be between 0 and 2")
         if self.top_p is not None:
             if isinstance(self.top_p, bool) or not isinstance(self.top_p, (int, float)):
                 raise AdapterRequestError("top_p must be a number or None")
-            if not math.isfinite(self.top_p) or not 0 < self.top_p <= 1:
+            if not _is_finite_number(self.top_p) or not 0 < self.top_p <= 1:
                 raise AdapterRequestError("top_p must be greater than 0 and at most 1")
         if self.max_new_tokens is not None:
             if (
@@ -201,9 +211,6 @@ class MockAdapter:
     def generate(self, request: GenerationRequest) -> GenerationResult:
         if not self._available:
             raise AdapterUnavailableError("Mock adapter is marked unavailable")
-        if not request.prompt.strip():
-            raise AdapterResponseError("Prompt must not be empty")
-
         self.requests.append(request)
         return GenerationResult(
             text=self._response_text,
