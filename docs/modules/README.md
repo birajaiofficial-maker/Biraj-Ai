@@ -1,27 +1,24 @@
-# Module Register
+# BIRAJ AI — Module Register
 
-This is the index only. Each module gets one authoritative specification under this folder when its requirements are ready. Avoid duplicating full specifications in other documents.
+This is the single module index. Each module receives one authoritative specification only when requirements are ready. Do not duplicate full specifications across documents.
 
-| Module | Responsibility | Current status | Next action |
-|---|---|---|---|
-| API / backend | HTTP boundary, orchestration and request lifecycle | Partial implementation | Audit routes and contracts |
-| Tenant and access foundation | Tenant records, API keys, tenant scoping | Implemented baseline; verification pending | Review isolation and key lifecycle |
-| Database | Persistence and schema evolution | Basic SQLAlchemy models | Audit schema and add migration plan |
-| Rate limiting | Shared tenant request limits | Optional Redis implementation | Test failure modes and production behavior |
-| Model adapter | Provider-neutral application interface | Not implemented | Define after model/runtime evaluation |
-| Model runtime | Load and serve selected model | Not implemented | Pending model and hardware decisions |
-| Memory / retrieval | Conversation state and knowledge retrieval | Not implemented | Define requirements and data boundaries |
-| Security / audit | Identity, permissions, secrets, auditability | Partial foundation | Threat-model and gap assessment |
-| Frontend | User interface | Not established | Define requirements after API baseline |
-| Observability / deployment | Logs, metrics, health, release and rollback | Not established | Define operational requirements |
+| Module | Responsibility | Existing evidence | Status | Next action |
+|---|---|---|---|---|
+| API / backend | HTTP boundary, auth, validation, request lifecycle | FastAPI application and tenant routes | Partial; audit required | Stabilize API contract and configuration |
+| Tenant / identity | Tenant records, API keys, isolation and permissions | SQLAlchemy models and routes | Partial; security review required | Verify authorization and isolation |
+| Configuration | Environment parsing, validation and secret boundaries | Environment variables used in app | Incomplete | Centralize validated settings |
+| Data / migrations | Persistence, schema evolution and transactions | SQLAlchemy models; create_all foundation | Partial | Add and test migrations |
+| Rate limiting | Per-tenant abuse protection | Redis integration and local fallback in experimental branch | Needs reconciliation | Decide safe behavior and test multi-instance limits |
+| Model adapter | Internal generate/stream/model-info interface | Competing unmerged Ollama and Cloudflare experiments | Not accepted | Define provider-neutral internal contract |
+| Inference runtime | Load and serve selected open-weight model | Ollama experiment in PR #1 only | Not selected | Evaluate models/runtime/hardware |
+| Orchestration | Prompt assembly, conversation policy and tool boundary | Minimal system prompt experiment | Not implemented as full module | Define requirements |
+| Conversation / memory | Conversation persistence and memory lifecycle | Not established | Planned | Define retention and tenant boundaries |
+| Retrieval / knowledge | Embeddings, indexing and retrieval | Not established | Planned | Define use cases and evaluation |
+| Security / audit | Authz, secrets, audit logs, threat controls | Partial auth and key hashing | Partial | Threat model and hardening |
+| Observability | Logs, metrics, tracing, health/readiness | Basic logging and health endpoint | Incomplete | Define operational signals |
+| Frontend | User interface | No verified frontend baseline | Not established | Requirements first |
+| Deployment / operations | Self-hosted release, backup, monitoring and rollback | Not established | Planned | Define after runtime selection |
 
 ## Module specification template
 
-Each module specification should contain:
-- Purpose and non-goals
-- Inputs, outputs and API/interface contract
-- Dependencies and ownership boundaries
-- Data model and security considerations
-- Failure behavior and observability
-- Test plan and acceptance criteria
-- Status, open questions and decision-log links
+Every module spec must include purpose/non-goals, interface, dependencies, data/security implications, failure behavior, observability, tests, acceptance criteria, status/evidence and open questions.
