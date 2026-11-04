@@ -261,6 +261,17 @@ def command_record_score(args: argparse.Namespace) -> int:
     if not matching or matching[-1].get("status") != "completed":
         raise ValueError("A completed response for this prompt/attempt must exist before scoring")
 
+    scorecard_path = run_dir / "scorecards.jsonl"
+    existing_scorecards = read_jsonl(scorecard_path)
+    if any(
+        item.get("prompt_id") == args.prompt_id and item.get("attempt") == args.attempt
+        for item in existing_scorecards
+    ):
+        raise ValueError(
+            "A scorecard already exists for this prompt/attempt; "
+            "existing evidence is append-only"
+        )
+
     score = json.loads(Path(args.scorecard_file).read_text(encoding="utf-8"))
     for field in DIMENSIONS:
         value = score.get(field)
@@ -278,7 +289,7 @@ def command_record_score(args: argparse.Namespace) -> int:
         "notes": score.get("notes", ""),
         "evidence": score.get("evidence", ""),
     }
-    append_jsonl(run_dir / "scorecards.jsonl", record)
+    append_jsonl(scorecard_path, record)
     print(json.dumps({"status": "score-recorded", "prompt_id": args.prompt_id, "attempt": args.attempt}, indent=2))
     return 0
 
