@@ -10,6 +10,8 @@ This folder is the technical source of truth for system architecture, developmen
 - [Model and runtime evaluation](MODEL-EVALUATION.md) — model/runtime selection criteria; no model is preselected.
 - [Evaluation prompt suite](evaluation/BIRAJ-PROMPT-SUITE-v0.1.md) — fixed initial Hindi, Hinglish, English, coding, reasoning, JSON, retrieval and safety prompts.
 - [Evaluation scoring guide](evaluation/SCORING-GUIDE-v0.1.md) — human scoring rubric, runtime metrics, review gates and scorecard template.
+- [Evaluation Runner specification](evaluation/EVALUATION-RUNNER-SPEC-v0.1.md) — offline-first runner scope, data contracts, security boundaries and acceptance criteria.
+- [Evaluation Runner CLI](../tools/evaluation_runner/README.md) — local commands for validation, response/score recording and report generation.
 - [Module register](modules/README.md) — one index of modules and their implementation status.
 - [Development workflow](DEVELOPMENT-WORKFLOW.md) — task, branch, PR, testing and update rules.
 - [Testing strategy](TESTING.md) — test levels and quality gates.
