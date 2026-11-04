@@ -38,7 +38,7 @@
 - Distinguish liveness from readiness.
 - Use bounded timeouts and resource limits.
 - Document Redis/inference/database outage behavior.
-- When Redis is configured but unavailable, the API uses a bounded per-process emergency rate limiter rather than denying every authenticated request. This fallback is not globally shared across multiple app instances; monitor and restore Redis.
+- When Redis is configured but unavailable, the API uses a bounded per-process emergency rate limiter rather than denying every authenticated request. This fallback is process-local, not globally shared across multiple app instances. Responses expose `X-RateLimit-Scope: process` so clients/operators can distinguish it from the Redis-backed shared limit. It is best-effort emergency protection only; do not treat it as a distributed quota or production abuse-control boundary. Monitor and restore Redis. Production multi-instance deployments must use a healthy shared limiter or an explicitly approved distributed alternative.
 
 ## Release gates
 
