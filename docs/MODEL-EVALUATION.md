@@ -107,3 +107,47 @@ Keep the BIRAJ AI model adapter provider-neutral. Compare Ollama and llama.cpp l
 - Expected concurrent users and production latency target.
 - Exact license review for each selected checkpoint and quantized/converted artifact.
 - No model/runtime selection, hardware purchase, cloud GPU or paid service is approved by this research.
+
+
+## 7. Hindi and Indic-language evaluation research — 2026-11-04
+
+### Benchmark sources to adapt
+
+- **IndicGenBench (ACL 2024):** evaluates user-facing generation across 29 Indic languages and 13 scripts, including cross-lingual summarization, translation and question answering. Use it as a reference for language coverage and task design; verify dataset terms and exact Hindi subset availability before incorporating any data.
+  - Paper: https://aclanthology.org/2024.acl-long.595/
+- **Hindi LLM evaluation suite (2025 preprint):** proposes IFEval-Hi, MT-Bench-Hi, GSM8K-Hi, ChatRAG-Hi and BFCL-Hi, addressing instruction following, chat, math reasoning, RAG and function calling in Hindi. Treat this as a candidate evaluation reference, not as a verified scorecard for our shortlisted models. Check dataset access, licensing and reproducibility before reuse.
+  - Paper: https://arxiv.org/abs/2508.19831
+- **EleutherAI LM Evaluation Harness:** provides a reproducible framework for running standard language-model tasks and custom evaluations across supported model backends. It can supplement, but cannot replace, BIRAJ-specific Hindi/Hinglish tests.
+  - Documentation: https://lm-evaluation-harness.readthedocs.io/
+
+### BIRAJ-specific test-set design
+
+Create a small, versioned, manually reviewed internal test set with separate slices:
+1. Hindi in Devanagari: natural conversation, explanations, summaries and multi-step instructions.
+2. Hinglish in Roman script: spelling variation, code-switching and colloquial phrasing.
+3. English: general assistant quality and technical explanations.
+4. Coding: generate a small function, explain unfamiliar code, diagnose a bug and write tests; grade by executing tests in an isolated sandbox.
+5. Structured output: exact JSON schema, missing fields, invalid input and tool-call argument formatting.
+6. Reasoning and factuality: multi-step questions with a known answer key; penalize unsupported claims and fabricated citations.
+7. Retrieval/context: place known facts in a long supplied document and test exact recall, conflicting statements and abstention.
+8. Safety: benign requests, disallowed requests and ambiguous requests; assess both unsafe compliance and excessive refusal.
+
+For each prompt, store the expected answer or rubric, language/script label, difficulty, source/author, dataset license (if external), and test-set version. Keep a held-out set that is not used to tune prompts. Have a Hindi-fluent reviewer score language naturalness and meaning preservation; automatic translation metrics alone are insufficient.
+
+### Scoring and decision discipline
+
+- Report per-slice scores, not only one aggregate score. A strong English result must not hide weak Hindi/Hinglish performance.
+- Suggested initial weighting for an internal comparison: Hindi + Hinglish 35%, coding 25%, reasoning/factuality 15%, instruction/JSON/tool formatting 15%, safety/reliability 10%. Treat these weights as a proposal to review, not an approved product requirement.
+- Publish both quality and operating cost: success rate, code test pass rate, JSON validity, refusal precision, time-to-first-token, tokens/sec, peak RAM/VRAM and failure rate.
+- Run the same test suite against each candidate with pinned model revisions, runtime versions, quantization and decoding parameters. Save raw outputs so scores can be audited.
+- Do not copy benchmark scores from model vendors into the BIRAJ scorecard as if they were independently reproduced.
+
+### License clarification from official sources
+
+- A surfaced official Qwen3.5-9B Hugging Face model card identifies that exact checkpoint as Apache-2.0. This supports adding Qwen3.5-9B as a candidate, but does not replace checking the exact revision and any separately licensed tokenizer or converted artifact: https://huggingface.co/Qwen/Qwen3.5-9B
+- Google's official Gemma 4 model card and launch material identify Apache-2.0: https://ai.google.dev/gemma/docs/core/model_card_4 and https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
+- DeepSeek's official R1 repository describes the R1 series as MIT but explicitly distinguishes the upstream licenses for distilled checkpoints: Qwen-derived variants trace to Qwen 2.5 Apache-2.0; Llama-derived variants trace to Llama 3.1/3.3 licenses. For any exact distilled checkpoint, retain the model card, upstream license and revision as part of the approval record: https://github.com/deepseek-ai/DeepSeek-R1
+
+### Current conclusion after this research
+
+Hindi evaluation needs a dedicated test slice and human review; broad multilingual support claims are not evidence of usable Hindi/Hinglish quality. IndicGenBench and the 2025 Hindi benchmark paper provide useful task references, while BIRAJ must maintain its own versioned prompts and reproducible raw results. No model or runtime is selected. Hardware and local benchmark execution remain outstanding.
