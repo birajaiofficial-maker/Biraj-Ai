@@ -26,6 +26,6 @@
 
 ## Current baseline evidence
 
-The repository contains API and tenant-isolation tests and a GitHub Actions workflow. Historical CI results are not proof that this new migration branch passes. Re-run CI after code changes and add coverage as the new architecture is implemented.
+The repository contains API and tenant-isolation tests and a GitHub Actions workflow. Regression coverage now includes tenant-name normalization and bounded local rate limiting during Redis outages. These tests have been added but have not yet been executed on this branch; historical CI results are not proof that this branch passes.
 
 A module is complete only when its acceptance tests pass, security boundaries are checked, operational failure behavior is documented and relevant technical/Notion records are updated.
