@@ -1,30 +1,32 @@
 # BIRAJ AI — Decision Log
 
-This file records confirmed project decisions. Unresolved technical choices stay in the Pending section until evidence supports a decision.
+This is the authoritative record of project decisions. Accepted decisions are not silently overwritten; changes require a superseding entry. Proposed technical options remain pending until evidence and approval exist.
 
-## Confirmed
+## Accepted decisions
 
-| ID | Decision | Reason / boundary | Status |
+| ID | Decision | Boundary | Status |
 |---|---|---|---|
-| D-001 | Use the existing GitHub repository as the central project workspace and source of truth. | Keep code, documentation, history and work tracking together. | Accepted |
-| D-002 | Use ChatGPT as the development assistant for planning, coding, debugging, review and GitHub work. | This is a development workflow choice, not a BIRAJ AI runtime dependency. | Accepted |
-| D-003 | Do not use OpenAI or Google Gemini as BIRAJ AI runtime model providers. | Runtime model must be evaluated from eligible open-weight/self-hosted options and their actual licenses. | Accepted |
-| D-004 | Complete and test the reusable core platform before adding end-user services. | Avoid premature feature expansion and architectural rework. | Accepted |
-| D-005 | Defer pricing, subscriptions, business model and promotion planning until after core-platform completion. | Keep current work focused on engineering completion. | Accepted |
-| D-006 | Build and verify modules sequentially, with documented interfaces and tests. | Reduce duplicate work, regressions and confusion. | Accepted |
+| D-001 | Use the existing GitHub repository as the central engineering workspace. | Preserve code, history, PRs and CI. | Accepted |
+| D-002 | Use ChatGPT as a development assistant. | Planning/coding/review only; not a BIRAJ AI runtime dependency. | Accepted |
+| D-003 | Do not use OpenAI or Google Gemini as BIRAJ AI runtime model providers. | No API dependency on either provider. | Accepted |
+| D-004 | Build BIRAJ AI around an eligible open-weight model served on BIRAJ-controlled infrastructure. | Exact model/runtime pending; self-hosted is the target boundary. | Accepted |
+| D-005 | Do not use Cloudflare Workers AI or another hosted model API as the production inference dependency. | No silent hosted-provider fallback. | Accepted |
+| D-006 | Complete and test the reusable core platform before expanding end-user services. | Prevent premature feature expansion. | Accepted |
+| D-007 | Develop modules sequentially with one authoritative task record and explicit acceptance criteria. | Avoid duplicate work and undocumented changes. | Accepted |
+| D-008 | Prefer local/free development and require explicit approval for paid services or infrastructure. | No paid GPU, cloud, subscription or vendor commitment without approval. | Accepted |
+| D-009 | Preserve historical branches and PRs until their unique work has been reviewed. | No blind deletion or merging. | Accepted |
+
+## Superseded / historical decisions
+
+| ID | Previous direction | Current disposition |
+|---|---|---|
+| H-001 | Cloudflare Workers AI only, recorded on the old `work/core-platform` branch and in PR #4 | Superseded by D-004/D-005 for the new baseline; PR #4 remains unmerged and excluded. |
+| H-002 | Ollama with Qwen2.5 0.5B as a default in PR #1 | Experiment only; not a final model/runtime selection. Evaluate license, quality and hardware before adoption. |
 
 ## Pending technical decisions
 
-| Topic | What must be evaluated | Status |
-|---|---|---|
-| Model family and exact model | Language quality, reasoning/coding, context, license, size, benchmark and resource use | Pending |
-| Inference engine | Model compatibility, serving features, throughput, quantization and operational complexity | Pending |
-| Hardware / hosting | Local vs cloud, GPU/VRAM, CPU/RAM, availability, cost ceiling and scale | Pending |
-| Production database | Data integrity, migrations, backup, operational fit | Pending |
-| Memory and retrieval | Data boundaries, retention, retrieval quality, tenant isolation and deletion | Pending |
-| Frontend framework | Product requirements, accessibility, maintainability and API integration | Pending |
-| Deployment platform | Reliability, security, observability, backups and rollback | Pending |
+Exact model/license, inference runtime, hardware, database, memory/retrieval, frontend and deployment target remain pending.
 
-## Change protocol
+## Decision change protocol
 
-For every material architecture or technology choice, record: context, options considered, evidence, decision, consequences, date and status. Update affected architecture/module documents in the same change. Do not silently overwrite a previous accepted decision; add a superseding entry.
+Record context, options, evidence, decision, consequences, date, owner and status. Update architecture, module register and Notion decision record in the same change. Never convert an experimental branch or passing unit test into an accepted architecture decision.
