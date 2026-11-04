@@ -19,6 +19,29 @@ MAX_STOP_SEQUENCES = 16
 MAX_STOP_SEQUENCE_CHARS = 256
 
 
+@dataclass(frozen=True)
+class GenerationLimits:
+    """Configurable, immutable resource bounds for one generation request."""
+
+    max_prompt_chars: int = MAX_PROMPT_CHARS
+    max_system_prompt_chars: int = MAX_SYSTEM_PROMPT_CHARS
+    max_new_tokens: int = MAX_NEW_TOKENS
+    max_stop_sequences: int = MAX_STOP_SEQUENCES
+    max_stop_sequence_chars: int = MAX_STOP_SEQUENCE_CHARS
+
+    def __post_init__(self) -> None:
+        for name in (
+            "max_prompt_chars",
+            "max_system_prompt_chars",
+            "max_new_tokens",
+            "max_stop_sequences",
+            "max_stop_sequence_chars",
+        ):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise AdapterRequestError(f"{name} must be a positive integer")
+
+
 def _is_finite_number(value: int | float) -> bool:
     """Return False for non-finite values and integers too large for float conversion."""
     try:
@@ -99,26 +122,26 @@ class GenerationRequest:
             if (
                 isinstance(self.max_new_tokens, bool)
                 or not isinstance(self.max_new_tokens, int)
-                or not 1 <= self.max_new_tokens <= MAX_NEW_TOKENS
+                or not 1 <= self.max_new_tokens <= self.limits.max_new_tokens
             ):
                 raise AdapterRequestError(
-                    f"max_new_tokens must be an integer between 1 and {MAX_NEW_TOKENS}"
+                    f"max_new_tokens must be an integer between 1 and {self.limits.max_new_tokens}"
                 )
         if not isinstance(self.stop, (tuple, list)):
             raise AdapterRequestError("stop must be a list or tuple of strings")
-        if len(self.stop) > MAX_STOP_SEQUENCES:
+        if len(self.stop) > self.limits.max_stop_sequences:
             raise AdapterRequestError(
-                f"stop must contain at most {MAX_STOP_SEQUENCES} sequences"
+                f"stop must contain at most {self.limits.max_stop_sequences} sequences"
             )
         if any(
             not isinstance(sequence, str)
             or not sequence
-            or len(sequence) > MAX_STOP_SEQUENCE_CHARS
+            or len(sequence) > self.limits.max_stop_sequence_chars
             for sequence in self.stop
         ):
             raise AdapterRequestError(
                 "each stop sequence must be a non-empty string of at most "
-                f"{MAX_STOP_SEQUENCE_CHARS} characters"
+                f"{self.limits.max_stop_sequence_chars} characters"
             )
         object.__setattr__(self, "stop", tuple(self.stop))
         if not isinstance(self.metadata, Mapping):
