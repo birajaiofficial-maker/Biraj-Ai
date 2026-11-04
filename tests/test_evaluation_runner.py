@@ -1,8 +1,16 @@
+import json
 from pathlib import Path
 
 import pytest
 
-from tools.evaluation_runner.runner import parse_prompt_suite, read_weights
+from tools.evaluation_runner.runner import (
+    DIMENSIONS,
+    WEIGHTED_CATEGORIES,
+    append_jsonl,
+    main,
+    parse_prompt_suite,
+    read_weights,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,12 +48,85 @@ def test_scoring_guide_weights_total_one_hundred_percent():
     guide = ROOT / "docs" / "evaluation" / "SCORING-GUIDE-v0.1.md"
     weights = read_weights(guide)
 
-    assert set(weights) == {
-        "Hindi + Hinglish",
-        "Coding",
-        "Reasoning + factuality",
-        "Instructions + JSON",
-        "Safety + reliability",
-    }
+    assert set(weights) == set(WEIGHTED_CATEGORIES)
     assert sum(weights.values()) == pytest.approx(1.0)
     assert weights["Hindi + Hinglish"] == pytest.approx(0.35)
+
+
+def test_new_run_creates_unique_offline_run_without_model_server(tmp_path, capsys):
+    result = main([
+        "new-run",
+        "--model-id",
+        "local-candidate-not-selected",
+        "--output-dir",
+        str(tmp_path),
+    ])
+    assert result == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+
+    metadata = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    assert metadata["mode"] == "offline-manual"
+    assert metadata["model_revision"] == "unknown"
+    assert metadata["runtime"] == "manual/offline"
+    assert len(metadata["prompts"]) == 20
+    assert (run_dir / "responses.jsonl").exists()
+    assert (run_dir / "scorecards.jsonl").exists()
+
+
+def test_report_keeps_runtime_metrics_separate_from_weighted_quality(tmp_path, capsys):
+    assert main([
+        "new-run",
+        "--model-id",
+        "test-candidate",
+        "--output-dir",
+        str(tmp_path),
+    ]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+    metadata = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+
+    scores_by_category = dict(zip(WEIGHTED_CATEGORIES, (4, 3, 2, 1, 0)))
+    for index, (category, score) in enumerate(scores_by_category.items(), start=1):
+        prompt = next(item for item in metadata["prompts"] if item["category"] == category)
+        append_jsonl(run_dir / "responses.jsonl", {
+            "prompt_id": prompt["prompt_id"],
+            "attempt": 1,
+            "status": "completed",
+            "metrics": {"ttft_ms": index * 100, "generation_tokens_per_sec": index * 2},
+        })
+        append_jsonl(run_dir / "scorecards.jsonl", {
+            "prompt_id": prompt["prompt_id"],
+            "attempt": 1,
+            "scores": {dimension: score if dimension in DIMENSIONS else None for dimension in DIMENSIONS},
+        })
+
+    assert main(["report", "--run-dir", str(run_dir)]) == 0
+    capsys.readouterr()
+    report = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+
+    weights = metadata["category_weights"]
+    expected = sum(scores_by_category[name] * weights[name] for name in WEIGHTED_CATEGORIES)
+    assert report["quality"]["status"] == "complete"
+    assert report["quality"]["weighted_score_0_4"] == pytest.approx(expected)
+    assert report["runtime_metrics"]["ttft_ms"]["median"] == pytest.approx(300)
+    assert report["runtime_metrics"]["generation_tokens_per_sec"]["median"] == pytest.approx(6)
+    assert report["quality"]["categories"]["Coding"]["mean_0_4"] == pytest.approx(3)
+
+
+def test_report_marks_quality_incomplete_when_required_categories_are_missing(tmp_path, capsys):
+    assert main([
+        "new-run",
+        "--model-id",
+        "test-candidate",
+        "--output-dir",
+        str(tmp_path),
+    ]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+
+    assert main(["report", "--run-dir", str(run_dir)]) == 0
+    capsys.readouterr()
+    report = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+
+    assert report["quality"]["status"] == "incomplete"
+    assert report["quality"]["weighted_score_0_4"] is None
+    assert len(report["quality"]["missing_categories"]) == 5
