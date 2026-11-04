@@ -26,6 +26,6 @@
 
 ## Current baseline evidence
 
-The repository contains API and tenant-isolation tests and a GitHub Actions workflow. Regression coverage now includes tenant-name normalization and bounded local rate limiting during Redis outages. These tests have been added but have not yet been executed on this branch; historical CI results are not proof that this branch passes.
+The repository contains API and tenant-isolation tests and a GitHub Actions workflow. Regression coverage includes tenant-name normalization and bounded local rate limiting during Redis outages. GitHub Actions run [#33](https://github.com/birajaiofficial-maker/Biraj-Ai/actions/runs/41746723627) on `work/open-weight-core` completed successfully: `pytest -q` reported **7 passed, 3 warnings** (2026-11-04). Warnings include deprecated FastAPI `on_event` lifecycle usage and the Starlette/httpx TestClient integration; they are not test failures and should be addressed in a separate cleanup task.
 
 A module is complete only when its acceptance tests pass, security boundaries are checked, operational failure behavior is documented and relevant technical/Notion records are updated.
