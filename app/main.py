@@ -85,7 +85,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", "Authorization", "X-API-Key", "X-Admin-Key"],
-    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Mode", "Retry-After"],
+    expose_headers=["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Mode", "X-RateLimit-Scope", "Retry-After"],
 )
 
 app.include_router(tenant_router)
@@ -151,6 +151,7 @@ async def record_tenant_usage(request: Request, call_next):
                     "X-RateLimit-Limit": str(fallback_limit),
                     "X-RateLimit-Remaining": str(remaining),
                     "X-RateLimit-Mode": "local-fallback",
+                    "X-RateLimit-Scope": "process",
                 }
                 if not allowed:
                     response = JSONResponse(
@@ -161,6 +162,7 @@ async def record_tenant_usage(request: Request, call_next):
                             "X-RateLimit-Limit": str(fallback_limit),
                             "X-RateLimit-Remaining": "0",
                             "X-RateLimit-Mode": "local-fallback",
+                            "X-RateLimit-Scope": "process",
                         },
                     )
                     elapsed_ms = (time.perf_counter() - started) * 1000
