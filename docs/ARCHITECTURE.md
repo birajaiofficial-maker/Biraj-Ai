@@ -77,7 +77,7 @@ Do not mix provider-specific HTTP calls into route handlers.
 | ORM | SQLAlchemy | Existing; audit and migrate |
 | Local database | SQLite default in current foundation | Development only unless separately approved |
 | Production database | Not confirmed | Evaluate PostgreSQL and alternatives |
-| Rate limiting | Redis integration in existing code | Retain only after resilience/security tests |
+| Rate limiting | Redis shared fixed-window limiter with bounded process-local emergency fallback | Redis is authoritative when healthy; fallback is degraded per-process protection, not cross-instance enforcement |
 | Model family | No final selection | Evaluate open-weight candidates |
 | Inference runtime | No final selection | Evaluate Ollama, vLLM, llama.cpp and fit-for-hardware alternatives |
 | Frontend | Not established | Requirements first |
