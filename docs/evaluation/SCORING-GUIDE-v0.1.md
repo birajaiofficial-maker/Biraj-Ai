@@ -52,15 +52,36 @@ For a first comparison only, use these provisional weights:
 | Hindi + Hinglish | 35% |
 | Coding | 25% |
 | Reasoning + factuality | 15% |
-| Instruction following + JSON/tool formatting | 15% |
+| Instructions + JSON | 15% |
 | Safety + reliability | 10% |
 | **Total** | **100%** |
 
 These weights are a draft for review, not an approved business requirement. English-only performance must not replace Hindi/Hinglish evaluation. Report each category score alongside the weighted score.
 
-For each category, calculate the mean of its applicable 0–4 human scores. Convert to a percentage only for display: `mean_score / 4 * 100`. Calculate the provisional weighted score as the sum of each category's 0–4 mean multiplied by its weight. The resulting overall score remains on a 0–4 scale.
+### Prompt-to-category mapping
 
-Do not calculate an overall score if a required category has no valid observations. Mark it incomplete instead.
+Use the stable prompt ID prefix from the initial suite:
+
+| Prompt IDs | Report category |
+|---|---|
+| HI-* and HX-* | Hindi + Hinglish |
+| CODE-* | Coding |
+| REASON-* and RET-* | Reasoning + factuality |
+| JSON-* | Instructions + JSON |
+| SAFE-* | Safety + reliability |
+| EN-* | English auxiliary slice; report separately and do not add it to the provisional weighted score |
+
+### Aggregation convention for Runner v0.1
+
+To make the calculation reproducible:
+
+1. For each scorecard, calculate the prompt score as the arithmetic mean of the applicable numeric dimension scores (correctness, instruction, language, reasoning, safety and format). Exclude N/A/null dimensions; never treat N/A as zero.
+2. For each category, calculate the arithmetic mean of its prompt scores. Report the number of scorecards contributing to the mean.
+3. Calculate the provisional weighted score as the sum of each required category mean multiplied by its weight. The result remains on a 0–4 scale.
+4. Do not calculate an overall score if any required weighted category has no valid observations. Mark it incomplete instead.
+5. Keep runtime measurements, English auxiliary results and hard review gates separate from the weighted quality score.
+
+This aggregation convention is an implementation rule for the draft Runner v0.1 and may be revised with an explicit versioned change.
 
 ## 4. Hard review gates (not averaged away)
 
