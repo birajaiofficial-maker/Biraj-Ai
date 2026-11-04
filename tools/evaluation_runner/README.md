@@ -84,3 +84,8 @@ See [Local Model Adapter Contract v0.1](../../../docs/evaluation/LOCAL-MODEL-ADA
 - Offline mode does not call any model or external API. It does not prove that a model can run or that reported metadata is true.
 
 See [the runner specification](../../../docs/evaluation/EVALUATION-RUNNER-SPEC-v0.1.md) and [scoring guide](../../../docs/evaluation/SCORING-GUIDE-v0.1.md).
+
+
+### Independent review gates
+
+New runs can record `--license-review`, `--harmful-compliance`, `--secret-exposure`, `--reproducibility` and `--hardware-feasibility`. Each gate accepts `pending`, `pass` or `blocked` and defaults to `pending`. Reports keep these gates separate from weighted answer quality. Unprovided context size, system RAM and GPU VRAM are recorded as `unknown`.
