@@ -366,3 +366,26 @@ def test_record_response_preserves_failed_and_skipped_attempts(tmp_path, capsys)
         "runtime unavailable",
         "manual skip",
     ]
+
+
+def test_review_gates_are_included_in_json_and_markdown_report(tmp_path, capsys):
+    assert main(["new-run", "--model-id", "candidate", "--output-dir", str(tmp_path),
+                 "--harmful-compliance", "pass", "--secret-exposure", "blocked"]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+    assert main(["report", "--run-dir", str(run_dir)]) == 0
+    capsys.readouterr()
+    report = json.loads((run_dir / "report.json").read_text(encoding="utf-8"))
+    assert report["review_gates"]["harmful_compliance"] == "pass"
+    assert report["review_gates"]["secret_exposure"] == "blocked"
+    assert "Secret exposure: blocked" in (run_dir / "report.md").read_text(encoding="utf-8")
+
+
+def test_scorecard_json_must_be_an_object(tmp_path, capsys):
+    assert main(["new-run", "--model-id", "candidate", "--output-dir", str(tmp_path)]) == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+    assert main(["record-response", "--run-dir", str(run_dir), "--prompt-id", "HI-01", "--response", "नमस्ते"]) == 0
+    capsys.readouterr()
+    score_file = tmp_path / "score.json"
+    score_file.write_text("[]", encoding="utf-8")
+    assert main(["record-score", "--run-dir", str(run_dir), "--prompt-id", "HI-01", "--scorecard-file", str(score_file)]) == 2
+    assert "Scorecard JSON must contain an object" in capsys.readouterr().err
