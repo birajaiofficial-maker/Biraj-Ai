@@ -247,3 +247,50 @@ def test_generation_request_metadata_is_recursively_immutable():
 def test_generation_request_rejects_non_json_metadata():
     with pytest.raises(AdapterRequestError, match="JSON-compatible"):
         GenerationRequest(prompt="hello", metadata={"bad": object()})
+
+
+
+def test_generation_request_uses_configurable_resource_limits():
+    from tools.evaluation_runner.adapters import GenerationLimits
+
+    limits = GenerationLimits(
+        max_prompt_chars=5,
+        max_system_prompt_chars=4,
+        max_new_tokens=3,
+        max_stop_sequences=1,
+        max_stop_sequence_chars=2,
+    )
+    request = GenerationRequest(
+        prompt="hello",
+        system_prompt="safe",
+        max_new_tokens=3,
+        stop=("END",) if False else ("OK",),
+        limits=limits,
+    )
+    assert request.limits is limits
+
+    with pytest.raises(AdapterRequestError, match="prompt exceeds maximum length of 5"):
+        GenerationRequest(prompt="123456", limits=limits)
+    with pytest.raises(AdapterRequestError, match="system_prompt exceeds maximum length of 4"):
+        GenerationRequest(prompt="ok", system_prompt="12345", limits=limits)
+    with pytest.raises(AdapterRequestError, match="max_new_tokens must be an integer between 1 and 3"):
+        GenerationRequest(prompt="ok", max_new_tokens=4, limits=limits)
+    with pytest.raises(AdapterRequestError, match="at most 1 sequences"):
+        GenerationRequest(prompt="ok", stop=("A", "B"), limits=limits)
+    with pytest.raises(AdapterRequestError, match="at most 2 characters"):
+        GenerationRequest(prompt="ok", stop=("END",), limits=limits)
+
+
+@pytest.mark.parametrize("field", [
+    "max_prompt_chars",
+    "max_system_prompt_chars",
+    "max_new_tokens",
+    "max_stop_sequences",
+    "max_stop_sequence_chars",
+])
+@pytest.mark.parametrize("value", [0, -1, True, 1.5])
+def test_generation_limits_reject_non_positive_or_non_integer_values(field, value):
+    from tools.evaluation_runner.adapters import GenerationLimits
+
+    with pytest.raises(AdapterRequestError, match="positive integer"):
+        GenerationLimits(**{field: value})
