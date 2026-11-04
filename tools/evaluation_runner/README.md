@@ -70,7 +70,7 @@ The runner writes `report.json` and `report.md`. Quality is marked **incomplete*
 
 ## 6. Adapter contract (offline only)
 
-The provider-neutral interface and deterministic mock are in `adapters.py`. They allow tests to verify request/result handling without Ollama, llama.cpp or any actual model.
+The provider-neutral interface and deterministic mock are in `adapters.py`. Request construction validates generation parameters and bounded input sizes, and recursively freezes JSON-compatible metadata. They allow tests to verify request/result handling without Ollama, llama.cpp or any actual model.
 
 See [Local Model Adapter Contract v0.1](../../../docs/evaluation/LOCAL-MODEL-ADAPTER-CONTRACT-v0.1.md). The mock is not a real model and must not be counted as an evaluation result.
 
