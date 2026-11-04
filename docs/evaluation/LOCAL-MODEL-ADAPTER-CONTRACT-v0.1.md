@@ -27,7 +27,7 @@ All adapters implement:
 - `model_info() -> dict`: model identity and runtime metadata.
 - `generate(GenerationRequest) -> GenerationResult`: one normalized generation.
 
-GenerationRequest carries prompt, optional system prompt, temperature, top-p, max-new-tokens, stop sequences and non-secret JSON-compatible metadata. The request validates its inputs at construction and recursively freezes metadata so later caller mutation cannot change the request.
+GenerationRequest carries prompt, optional system prompt, temperature, top-p, max-new-tokens, stop sequences, non-secret JSON-compatible metadata, and an immutable `GenerationLimits` configuration. Callers can override safe defaults per request with `limits=GenerationLimits(...)`; every configured bound must be a positive integer. The request validates its inputs at construction and recursively freezes metadata so later caller mutation cannot change the request.
 
 GenerationResult carries text, model/runtime identity, optional token counts, TTFT, generation duration, throughput, finish reason and raw non-secret metadata.
 
