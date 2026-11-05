@@ -133,14 +133,14 @@ Before any local server is exposed beyond the host:
 
 ## 8. Acceptance checklist
 
-- [ ] Hardware inventory template is complete.
-- [ ] Ollama and llama.cpp comparison is supported by official sources.
-- [ ] Memory-sizing components and context/concurrency effects are documented.
-- [ ] CPU fallback, accelerator support and backend caveats are stated accurately.
-- [ ] Security and operational controls are documented.
-- [ ] Unknown hardware fields remain explicitly unknown.
-- [ ] No model/runtime selection, install, download, live inference, paid infrastructure or purchase has occurred.
-- [ ] Research has been reviewed and linked from Notion Task 20.
+- [x] Hardware inventory template is complete; actual inference-host values remain unknown.
+- [x] Ollama and llama.cpp comparison is supported by official project documentation.
+- [x] Memory-sizing components and context/concurrency effects are documented.
+- [x] CPU fallback, accelerator support and backend caveats are stated without universal guarantees.
+- [x] Security and operational controls are documented.
+- [x] Unknown hardware fields remain explicitly unknown.
+- [x] No model/runtime selection, install, download, live inference, paid infrastructure or purchase has occurred.
+- [x] Research has been reviewed and linked from Notion Task 20.
 
 ## 9. Open questions
 
@@ -157,3 +157,19 @@ Until these are answered, a machine-specific runtime recommendation and real per
 - Parent Notion Task 10: https://app.notion.com/p/40e3080827b381648db0e823d4c6b2c9
 - Existing architecture baseline: [ARCHITECTURE.md](ARCHITECTURE.md)
 - Model/runtime evaluation: [MODEL-EVALUATION.md](MODEL-EVALUATION.md)
+
+
+## 11. Review addendum — 2026-11-05
+
+A second-pass review of the official llama.cpp server documentation confirms several operational details relevant to any future adapter:
+
+- The documented default `llama-server` listener is `127.0.0.1:9931`, which is loopback-only. The Docker example explicitly changes the bind address to `0.0.0.0`; that changes the exposure boundary and must not be copied into a deployment without a reviewed network and authentication design.
+- The server documents OpenAI-compatible chat-completions, responses and embeddings routes, parallel decoding, multi-user support, continuous batching, monitoring endpoints and schema-constrained JSON output. These are runtime capabilities, not guarantees that every model/backend supports every feature identically.
+- The project documents CPU and GPU inference for F16 and quantized models, multiple quantization levels, and CPU/GPU hybrid inference. Exact performance and feature coverage remain build-, backend-, model- and hardware-dependent.
+- The future BIRAJ adapter must normalize capabilities and errors rather than assuming feature parity. It should expose a capability snapshot (for example streaming, structured output, embeddings and parallel generation) and reject unsupported requested features explicitly.
+
+Additional official references reviewed:
+- llama.cpp server API and default listener: https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
+- llama.cpp quantization and backend overview: https://github.com/ggml-org/llama.cpp
+
+This review does not select llama.cpp or authorize installation, model download, inference, network exposure or production deployment. Task 10 remains responsible for final model/runtime evaluation. The actual inference-host inventory remains Unknown.
